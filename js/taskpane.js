@@ -36,7 +36,7 @@ Office.onReady((info) => {
 async function initApp() {
   setupTabs();
   setupEventListeners();
-  setupSimParams();
+  updateSimParams();
   await loadDatabaseCache();
   populatePropertiesChecks();
   checkAPIHealth();
