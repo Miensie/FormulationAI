@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  manifest-production.xml
+  Remplacer VOTRE-USERNAME par votre nom d'utilisateur GitHub.
+  Ce fichier est mis à jour automatiquement par le CI/CD GitHub Actions.
+-->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+
+  <Id>b1c2d3e4-f5a6-7890-bcde-f12345678901</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>FormulationAI</ProviderName>
+  <DefaultLocale>fr-FR</DefaultLocale>
+  <DisplayName DefaultValue="FormulationAI"/>
+  <Description DefaultValue="Generez et optimisez vos formulations chimiques avec IA"/>
+
+  <IconUrl DefaultValue="https://miensie.github.io/FormulationAI/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://miensie.github.io/FormulationAI/icon-64.png"/>
+  <SupportUrl DefaultValue="https://github.com/miensie/FormulationAI"/>
+
+  <AppDomains>
+    <AppDomain>https://miensie.github.io</AppDomain>
+    <!-- Domaine du backend (Render, Railway, etc.) -->
+    <AppDomain>https://FormulationAI-backend.onrender.com</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Workbook"/>
+  </Hosts>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://miensie.github.io/FormulationAI/taskpane.html"/>
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <FunctionFile resid="Commands.Url"/>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="PhysioGroup">
+                <Label resid="GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+                <Control xsi:type="Button" id="TaskpaneButton">
+                  <Label resid="TaskpaneButton.Label"/>
+                  <Supertip>
+                    <Title resid="TaskpaneButton.Label"/>
+                    <Description resid="TaskpaneButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>PhysioAI</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://miensie.github.io/FormulationAI/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://miensie.github.io/FormulationAI/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://miensie.github.io/FormulationAI/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Commands.Url" DefaultValue="https://miensie.github.io/FormulationAI/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://miensie.github.io/FormulationAI/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GroupLabel"           DefaultValue="FormulationAI"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="FormulationAI Lab"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Formulation et IA"/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

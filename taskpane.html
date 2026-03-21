@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FormulationAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/taskpane.css"/>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="logo">
+    <span class="logo-icon">⚗</span>
+    <div>
+      <div class="logo-name"><span class="logo-accent">Formulation</span>AI</div>
+      <div class="logo-sub">Chimie · Optimisation · IA</div>
+    </div>
+  </div>
+  <div class="status-dot" id="statusDot"></div>
+</header>
+
+<!-- NAV -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="compose">🧪 Composer</button>
+  <button class="tab-btn" data-tab="optimize">⚡ Optimiser</button>
+  <button class="tab-btn" data-tab="predict">🎯 Predire</button>
+  <button class="tab-btn" data-tab="advisor">🤖 IA</button>
+  <button class="tab-btn" data-tab="simulate">🔬 Simuler</button>
+  <button class="tab-btn" data-tab="database">📚 BD</button>
+</nav>
+
+<!-- ═══ TAB: COMPOSER ═══ -->
+<section class="tab-panel active" id="tab-compose">
+
+  <div class="panel-block">
+    <label class="field-label">Application ciblee</label>
+    <select class="field-select" id="applicationSelect">
+      <option value="cosmetic">Cosmetique</option>
+      <option value="pharmaceutical">Pharmaceutique</option>
+      <option value="food">Alimentaire</option>
+      <option value="industrial">Industriel</option>
+    </select>
+  </div>
+
+  <div class="panel-block">
+    <label class="field-label">Composants de la formulation</label>
+    <div id="componentsList"></div>
+    <div class="row-2 mt-8">
+      <select class="field-select" id="componentToAdd"></select>
+      <button class="btn btn-secondary" id="btnAddComponent">+ Ajouter</button>
+    </div>
+    <div class="row-2 mt-4">
+      <div>
+        <label class="field-label small">Min (%)</label>
+        <input class="field-input" id="compMin" type="number" value="0" min="0" max="100" step="0.1"/>
+      </div>
+      <div>
+        <label class="field-label small">Max (%)</label>
+        <input class="field-input" id="compMax" type="number" value="100" min="0" max="100" step="0.1"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-block">
+    <label class="field-label">Parametres de generation</label>
+    <div class="row-2">
+      <div>
+        <label class="field-label small">N formulations</label>
+        <input class="field-input" id="nFormulations" type="number" value="5" min="1" max="20"/>
+      </div>
+      <div>
+        <label class="field-label small">Methode</label>
+        <select class="field-select" id="genMethod">
+          <option value="lhs">Latin Hypercube</option>
+          <option value="random">Aleatoire</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary full-width mt-8" id="btnGenerate">
+      🧪 Generer les formulations
+    </button>
+  </div>
+
+  <div class="chart-card" id="composeChartCard" style="display:none">
+    <canvas id="composeChart"></canvas>
+  </div>
+  <div id="formulations-result" style="display:none"></div>
+
+</section>
+
+<!-- ═══ TAB: OPTIMISER ═══ -->
+<section class="tab-panel" id="tab-optimize">
+
+  <div class="panel-block">
+    <label class="field-label">Objectif d'optimisation</label>
+    <select class="field-select" id="optimizeObjective">
+      <option value="cost">Minimiser le cout</option>
+      <option value="property">Optimiser une propriete</option>
+      <option value="pareto">Front de Pareto (multi-objectifs)</option>
+    </select>
+  </div>
+
+  <div class="panel-block" id="targetPropertyPanel" style="display:none">
+    <label class="field-label">Propriete cible</label>
+    <select class="field-select" id="targetProperty">
+      <option value="HLB">HLB optimal</option>
+      <option value="density">Densite</option>
+      <option value="viscosity">Viscosite (estim.)</option>
+    </select>
+    <div class="row-2 mt-8">
+      <div>
+        <label class="field-label small">Valeur cible HLB</label>
+        <input class="field-input" id="targetHLB" type="number" value="12" step="0.5"/>
+      </div>
+      <div>
+        <label class="field-label small">Densite ciblee</label>
+        <input class="field-input" id="targetDensity" type="number" value="1.05" step="0.01"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-block">
+    <label class="field-label">Ponderation cout dans l'objectif</label>
+    <input class="field-input" id="weightCost" type="number" value="0.5" min="0" max="1" step="0.1"/>
+    <button class="btn btn-primary full-width mt-8" id="btnOptimize">
+      ⚡ Lancer l'optimisation
+    </button>
+  </div>
+
+  <div class="chart-card" id="optChartCard" style="display:none">
+    <canvas id="optChart"></canvas>
+  </div>
+  <div class="result-block" id="optResult" style="display:none"></div>
+
+</section>
+
+<!-- ═══ TAB: PREDIRE ═══ -->
+<section class="tab-panel" id="tab-predict">
+
+  <div class="panel-block">
+    <label class="field-label">Propriete a predire</label>
+    <input class="field-input" id="predictPropName" placeholder="Ex: viscosity, pH, stability_index..."/>
+    <label class="field-label mt-8">Modele ML</label>
+    <select class="field-select" id="predictModel">
+      <option value="random_forest">Random Forest</option>
+      <option value="gradient_boosting">Gradient Boosting</option>
+      <option value="svr">SVR</option>
+      <option value="ridge">Ridge</option>
+    </select>
+  </div>
+
+  <div class="panel-block">
+    <label class="field-label">Donnees d'entrainement (depuis Excel)</label>
+    <div class="row-2">
+      <input class="field-input" id="trainRange" placeholder="Ex: A1:G20" value="A1:G20"/>
+      <button class="btn btn-secondary" id="btnReadTrain">📥 Lire</button>
+    </div>
+    <div class="data-preview" id="trainPreview">
+      <span class="hint">Colonnes : composants (%) + derniere colonne = valeur propriete</span>
+    </div>
+    <button class="btn btn-primary full-width mt-8" id="btnTrain">
+      🧠 Entrainer le modele
+    </button>
+    <div class="result-block" id="trainResult" style="display:none"></div>
+  </div>
+
+  <div class="panel-block">
+    <label class="field-label">Nouvelles formulations a predire</label>
+    <p class="hint">Utilisez les formulations generees ou chargez depuis Excel.</p>
+    <button class="btn btn-accent full-width mt-8" id="btnPredictGenerated">
+      🎯 Predire les formulations generees
+    </button>
+    <div class="result-block" id="predictResult" style="display:none"></div>
+  </div>
+
+</section>
+
+<!-- ═══ TAB: IA ADVISOR ═══ -->
+<section class="tab-panel" id="tab-advisor">
+
+  <div class="panel-block">
+    <label class="field-label">Proprietes cibles</label>
+    <div id="targetPropsChecks" class="props-checks"></div>
+  </div>
+
+  <div class="panel-block">
+    <label class="field-label">Budget</label>
+    <div class="row-3">
+      <button class="btn btn-secondary budget-btn active" data-budget="low">Economique</button>
+      <button class="btn btn-secondary budget-btn" data-budget="medium">Standard</button>
+      <button class="btn btn-secondary budget-btn" data-budget="high">Premium</button>
+    </div>
+    <button class="btn btn-accent full-width mt-8" id="btnRecommend">
+      🤖 Obtenir les recommandations IA
+    </button>
+  </div>
+
+  <div class="ai-report" id="aiAdvisorReport" style="display:none"></div>
+
+  <div class="panel-block mt-8">
+    <label class="field-label">Analyser une formulation existante</label>
+    <p class="hint">Utilise les composants saisis dans l'onglet Composer.</p>
+    <button class="btn btn-ghost full-width" id="btnAnalyze">
+      🔍 Analyser la formulation actuelle
+    </button>
+    <div class="ai-report" id="analyzeReport" style="display:none"></div>
+  </div>
+
+</section>
+
+<!-- ═══ TAB: SIMULER ═══ -->
+<section class="tab-panel" id="tab-simulate">
+
+  <div class="panel-block">
+    <label class="field-label">Type de simulation</label>
+    <select class="field-select" id="simType" onchange="updateSimParams()">
+      <option value="viscosity">Viscosite vs Temperature</option>
+      <option value="release">Profil de liberation</option>
+      <option value="stability">Stabilite dans le temps</option>
+      <option value="compare">Comparaison de formulations</option>
+    </select>
+  </div>
+
+  <div class="panel-block" id="simParamsPanel"></div>
+
+  <button class="btn btn-primary full-width" id="btnSimulate" style="margin:0 14px;width:calc(100% - 28px)">
+    🔬 Lancer la simulation
+  </button>
+
+  <div class="chart-card" id="simChartCard" style="display:none; margin-top:10px">
+    <canvas id="simChart"></canvas>
+  </div>
+  <div class="result-block" id="simResult" style="display:none; margin:10px 14px"></div>
+
+</section>
+
+<!-- ═══ TAB: BASE DE DONNEES ═══ -->
+<section class="tab-panel" id="tab-database">
+
+  <div class="panel-block">
+    <label class="field-label">Recherche dans la base de donnees</label>
+    <div class="row-2">
+      <select class="field-select" id="dbCategory">
+        <option value="">Toutes categories</option>
+      </select>
+      <button class="btn btn-secondary" id="btnDbSearch">🔍 Chercher</button>
+    </div>
+    <input class="field-input mt-8" id="dbSearchText" placeholder="Recherche par nom ou fonction..."/>
+  </div>
+
+  <div class="panel-block">
+    <label class="field-label">Resultats</label>
+    <div class="db-results" id="dbResults">
+      <span class="hint">Choisissez une categorie et cliquez Chercher</span>
+    </div>
+  </div>
+
+  <div class="panel-block" id="dbDetailPanel" style="display:none">
+    <label class="field-label">Detail</label>
+    <div id="dbDetail"></div>
+  </div>
+
+</section>
+
+<!-- LOADER -->
+<div class="loader-overlay" id="loaderOverlay" style="display:none">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <div class="loader-text" id="loaderText">Calcul en cours...</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/taskpane.js"></script>
+</body>
+</html>
