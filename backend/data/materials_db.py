@@ -623,3 +623,12 @@ def estimate_blend_density(formulation: Dict[str, float]) -> float:
         density = mat.get("density", 1.0)
         inv_density_sum += (pct / 100.0) / density
     return round(1.0 / inv_density_sum, 4) if inv_density_sum > 0 else 1.0
+
+
+# ── Fusion automatique avec les matières premières CI ────────────────────────
+# Importer ici pour que get_all_materials() retourne MATERIALS + CI
+try:
+    from data.ci_materials_db import CI_MATERIALS
+    MATERIALS.update(CI_MATERIALS)
+except ImportError:
+    pass

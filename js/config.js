@@ -12,7 +12,7 @@
 
 (function () {
   // ── ✏️ Mettre ici l'URL EXACTE de votre backend Render ──────────────────
-  const RENDER_API_URL = "https://formulationai.onrender.com";
+  const RENDER_API_URL = "https://formulationai-api.onrender.com";
   //                      ↑ Vérifier cette URL dans votre tableau de bord Render
   // ─────────────────────────────────────────────────────────────────────────
 

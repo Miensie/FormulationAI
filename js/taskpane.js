@@ -1600,3 +1600,561 @@ async function loadSuppliers() {
     showToast("Erreur fournisseurs : " + e.message, "error");
   } finally { hideLoader(); }
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// DEVISE — sélecteur global
+// ════════════════════════════════════════════════════════════════════════════
+
+let currentCurrency = "FCFA";
+const RATES = { FCFA: 1, EUR: 655.957, USD: 600 };
+const SYMS  = { FCFA: "FCFA", EUR: "€", USD: "$" };
+
+function setCurrency(currency) {
+  currentCurrency = currency;
+  // Mettre à jour l'affichage des coûts partout
+  refreshCostDisplays();
+}
+
+function formatPrice(amount_fcfa, currency) {
+  currency = currency || currentCurrency;
+  const rate = RATES[currency] || 1;
+  const sym  = SYMS[currency]  || currency;
+  const converted = amount_fcfa / rate;
+  if (currency === "FCFA") return `${Math.round(converted).toLocaleString("fr-FR")} ${sym}`;
+  return `${converted.toFixed(2)} ${sym}`;
+}
+
+function refreshCostDisplays() {
+  // Re-rendre les formulations si déjà générées
+  if (state.lastGenerateResult) renderFormulations(state.lastGenerateResult);
+}
+
+// Récupérer les taux depuis l'API
+async function loadExchangeRates() {
+  try {
+    const res = await apiGet("/currency/rates");
+    Object.assign(RATES, res.rates || {});
+  } catch { /* offline — utiliser taux locaux */ }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ONGLET RAPPORT PDF
+// ════════════════════════════════════════════════════════════════════════════
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnRptPreview") ?.addEventListener("click", previewReport);
+  document.getElementById("btnRptGenerate")?.addEventListener("click", generateReport);
+
+  // Boutons devise rapport
+  document.querySelectorAll(".rpt-currency").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".rpt-currency").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  // Sync sélecteur de devise header avec sélecteur rapport
+  document.getElementById("currencySelect")?.addEventListener("change", e => {
+    setCurrency(e.target.value);
+    document.querySelectorAll(".rpt-currency").forEach(b => {
+      b.classList.toggle("active", b.dataset.cur === e.target.value);
+    });
+  });
+
+  loadExchangeRates();
+});
+
+// ── Aperçu ────────────────────────────────────────────────────────────────────
+function previewReport() {
+  const panel = document.getElementById("rptPreviewPanel");
+  const prev  = document.getElementById("rptPreview");
+  panel.style.display = "block";
+
+  const nForms = state.generatedFormulas.length;
+  const hasOpt = !!state.lastOptResult;
+  const rptCur = document.querySelector(".rpt-currency.active")?.dataset.cur || "FCFA";
+
+  const sections = [...document.querySelectorAll(".rpt-section:checked")]
+    .map(c => c.nextSibling?.textContent?.trim() || c.id);
+
+  prev.innerHTML = `
+    <div style="color:var(--cyan);font-weight:700;margin-bottom:6px">
+      ${document.getElementById("rptCompany").value || "Entreprise"}
+    </div>
+    Auteur : ${document.getElementById("rptAuthor").value || "—"}<br>
+    Projet : ${document.getElementById("rptProject").value || "—"}<br>
+    Devise : ${rptCur} | Orientation : ${document.getElementById("rptOrientation").value}<br>
+    <br>
+    Formulations disponibles : ${nForms} generees${hasOpt?" + 1 optimisee":""}<br>
+    Sections : ${sections.join(", ")}<br>
+    <br>
+    <span style="color:${nForms>0?'var(--green)':'var(--amber)'}">
+      ${nForms>0?"✓ Pret a generer":"⚠ Generez des formulations dans l'onglet Composer"}
+    </span>`;
+}
+
+// ── Génération PDF ────────────────────────────────────────────────────────────
+async function generateReport() {
+  if (!state.generatedFormulas.length && !state.lastOptResult) {
+    showToast("Generez d'abord des formulations dans l'onglet Composer", "error"); return;
+  }
+
+  showLoader("Chargement jsPDF...");
+  try {
+    if (!window.jspdf) {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+    }
+    if (!window.jspdf?.jsPDF) {
+      showToast("Impossible de charger jsPDF", "error"); hideLoader(); return;
+    }
+
+    showLoader("Generation du rapport PDF...");
+
+    const { jsPDF } = window.jspdf;
+    const isLandscape = document.getElementById("rptOrientation").value === "landscape";
+    const doc = new jsPDF({ orientation: isLandscape?"l":"p", unit:"mm", format:"a4" });
+
+    const PW  = doc.internal.pageSize.getWidth();
+    const PH  = doc.internal.pageSize.getHeight();
+    const ML  = 15, MR = 15;
+    const CW  = PW - ML - MR;
+    let Y     = 15;
+
+    // Infos rapport
+    const company  = sanitize(document.getElementById("rptCompany").value  || "Entreprise");
+    const author   = sanitize(document.getElementById("rptAuthor").value   || "");
+    const project  = sanitize(document.getElementById("rptProject").value  || "Formulation");
+    const city     = sanitize(document.getElementById("rptCity").value     || "Abidjan");
+    const desc     = sanitize(document.getElementById("rptDescription").value || "");
+    const rptCur   = document.querySelector(".rpt-currency.active")?.dataset.cur || "FCFA";
+    const today    = new Date().toLocaleDateString("fr-FR", {day:"2-digit",month:"long",year:"numeric"});
+
+    // Quelle formulation afficher
+    const fIdx     = document.getElementById("rptFormulationIdx").value;
+    let   mainForm = null;
+    if (fIdx === "opt" && state.lastOptResult) {
+      mainForm = { composition: state.lastOptResult.composition,
+                   cost_index: state.lastOptResult.cost_index,
+                   density_est: state.lastOptResult.density_est,
+                   HLB_avg: state.lastOptResult.HLB_avg,
+                   label: "Formulation optimisee" };
+    } else {
+      const idx = parseInt(fIdx) || 0;
+      mainForm = state.generatedFormulas[idx] || state.generatedFormulas[0];
+      if (mainForm) mainForm.label = `Formulation #${idx+1}`;
+    }
+
+    // Palette
+    const C = {
+      cyan:  [0,229,200], dark: [7,9,15], card: [14,17,32],
+      white: [255,255,255], light:[245,247,252],
+      muted: [100,110,140], green:[34,197,94],
+      amber: [245,158,11],  red:  [239,68,68],
+    };
+
+    function newPage() {
+      footerPage();
+      doc.addPage();
+      Y = 15;
+      headerPage();
+    }
+    function chk(n) { if (Y + n > PH - 18) newPage(); }
+
+    function headerPage() {
+      doc.setFillColor(...C.dark);
+      doc.rect(0, 0, PW, 9, "F");
+      doc.setFontSize(7); doc.setFont("helvetica","bold");
+      doc.setTextColor(...C.cyan);
+      doc.text("FormulationAI", ML, 6.5);
+      doc.setFont("helvetica","normal"); doc.setTextColor(...C.muted);
+      doc.text(company + " — " + project, PW - MR, 6.5, {align:"right"});
+      Y = 16;
+    }
+
+    function footerPage() {
+      const pg = doc.internal.getNumberOfPages();
+      doc.setPage(pg);
+      doc.setDrawColor(...C.muted); doc.setLineWidth(0.2);
+      doc.line(ML, PH - 10, PW - MR, PH - 10);
+      doc.setFontSize(7); doc.setFont("helvetica","normal");
+      doc.setTextColor(...C.muted);
+      doc.text(`FormulationAI — ${company} — Confidentiel`, ML, PH - 6);
+      doc.text(`Page ${pg}`, PW - MR, PH - 6, {align:"right"});
+    }
+
+    function secTitle(txt) {
+      chk(12); Y += 2;
+      doc.setFillColor(...C.cyan);
+      doc.rect(ML, Y, CW, 7.5, "F");
+      doc.setFontSize(9.5); doc.setFont("helvetica","bold");
+      doc.setTextColor(...C.dark);
+      doc.text(sanitize(txt), ML + 3, Y + 5.5);
+      Y += 11;
+    }
+
+    function kv(label, value, valColor) {
+      chk(7);
+      doc.setFontSize(8.5); doc.setFont("helvetica","normal");
+      doc.setTextColor(...C.muted);
+      doc.text(sanitize(String(label)), ML + 2, Y);
+      doc.setFont("helvetica","bold");
+      doc.setTextColor(...(valColor || C.dark));
+      doc.text(sanitize(String(value ?? "—")), ML + CW * 0.5, Y);
+      doc.setDrawColor(...C.light); doc.setLineWidth(0.15);
+      doc.line(ML, Y+1.5, ML+CW, Y+1.5);
+      Y += 7;
+    }
+
+    function para(txt, sz, color) {
+      if (!txt) return;
+      const clean = sanitize(txt);
+      chk(7);
+      doc.setFontSize(sz||8.5); doc.setFont("helvetica","normal");
+      doc.setTextColor(...(color||C.dark));
+      const lines = doc.splitTextToSize(clean, CW - 4);
+      chk(lines.length * 5);
+      doc.text(lines, ML + 2, Y);
+      Y += lines.length * ((sz||8.5) * 0.45) + 3;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // PAGE DE GARDE
+    // ══════════════════════════════════════════════════════════════════════
+
+    doc.setFillColor(...C.dark); doc.rect(0,0,PW,PH,"F");
+    doc.setFillColor(...C.cyan); doc.rect(0,0,PW,3,"F");
+    doc.setFillColor(...C.cyan); doc.rect(0,PH-3,PW,3,"F");
+
+    // Logo
+    doc.setFontSize(34); doc.setFont("helvetica","bold");
+    doc.setTextColor(...C.cyan);
+    doc.text("Formulation", PW/2 - 18, PH*0.22, {align:"center"});
+    doc.setTextColor(...C.white);
+    doc.text("AI", PW/2 + 33, PH*0.22, {align:"center"});
+    doc.setFontSize(9); doc.setFont("helvetica","normal");
+    doc.setTextColor(...C.muted);
+    doc.text("Moteur de formulation chimique assiste par IA", PW/2, PH*0.22+8, {align:"center"});
+
+    // Boite titre
+    doc.setFillColor(14,17,32); doc.setDrawColor(...C.cyan); doc.setLineWidth(0.4);
+    doc.roundedRect(ML+8, PH*0.30, CW-16, 28, 2, 2, "FD");
+    doc.setFontSize(14); doc.setFont("helvetica","bold"); doc.setTextColor(...C.white);
+    const titleLines = doc.splitTextToSize(sanitize(project), CW-24);
+    doc.text(titleLines, PW/2, PH*0.30+10, {align:"center"});
+
+    // Métadonnées
+    const meta = [
+      ["Entreprise", company], ["Formulateur", author||"—"],
+      ["Reference",  project], ["Date",        today],
+      ["Ville",      city],    ["Devise",       rptCur],
+    ];
+    let yM = PH*0.66;
+    meta.forEach(([k,v]) => {
+      doc.setFontSize(8.5); doc.setFont("helvetica","bold");
+      doc.setTextColor(...C.muted);
+      doc.text(k+" :", PW/2-8, yM, {align:"right"});
+      doc.setFont("helvetica","normal"); doc.setTextColor(...C.white);
+      doc.text(sanitize(v), PW/2-4, yM);
+      yM += 8.5;
+    });
+
+    if (desc) {
+      doc.setFontSize(8); doc.setFont("helvetica","italic");
+      doc.setTextColor(...C.muted);
+      const dl = doc.splitTextToSize(sanitize(desc), CW-20);
+      doc.text(dl, PW/2, yM+4, {align:"center"});
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // PAGES CONTENU
+    // ══════════════════════════════════════════════════════════════════════
+    doc.addPage();
+    headerPage();
+
+    const sectionChecked = id => document.getElementById(id)?.checked;
+
+    // ── Section 1 : Composition ────────────────────────────────────────────
+    if (mainForm && sectionChecked("rpt_composition")) {
+      secTitle("1. Composition de la formulation");
+      kv("Reference", mainForm.label || "Formulation");
+      kv("N composants", Object.keys(mainForm.composition||{}).length);
+
+      // Tableau composition
+      chk(20);
+      const compEntries = Object.entries(mainForm.composition||{})
+        .sort((a,b) => b[1]-a[1]);
+      const tableData = compEntries.map(([id, pct]) => {
+        const mat = MATERIALS_CACHE[id] || {};
+        const isCI = mat.origin?.includes("Cote d'Ivoire") ||
+                     mat.origin?.includes("CI") ||
+                     mat._source?.includes("CI") ? "✓" : "";
+        return [
+          sanitize(mat.name || id),
+          sanitize(mat.category || "?"),
+          pct.toFixed(2) + " %",
+          isCI,
+        ];
+      });
+
+      doc.autoTable({
+        startY: Y,
+        head:   [["Matiere premiere", "Categorie", "Pourcentage", "Local CI"]],
+        body:   tableData,
+        theme:  "grid",
+        headStyles: {fillColor: C.dark, textColor: C.cyan, fontSize: 8, fontStyle:"bold"},
+        bodyStyles: {fontSize: 8, textColor: C.dark},
+        alternateRowStyles: {fillColor: [245,247,252]},
+        columnStyles: {
+          0:{cellWidth:CW*0.45},
+          1:{cellWidth:CW*0.20},
+          2:{cellWidth:CW*0.18, halign:"center"},
+          3:{cellWidth:CW*0.12, halign:"center", textColor:C.green},
+        },
+        margin: {left:ML, right:MR},
+      });
+      Y = doc.lastAutoTable.finalY + 6;
+    }
+
+    // ── Section 2 : Analyse des coûts ────────────────────────────────────
+    if (mainForm && sectionChecked("rpt_costs")) {
+      chk(40); secTitle("2. Analyse des couts");
+      try {
+        const priceRes = await apiPost("/currency/price", {
+          formulation: mainForm.composition, currency: rptCur
+        });
+        kv("Cout total (" + rptCur + "/kg)",
+           formatPrice(priceRes.total_FCFA_per_kg, rptCur),
+           C.cyan);
+        kv("Cout index relatif", mainForm.cost_index?.toFixed(2));
+        kv("Densite estimee", (mainForm.density_est?.toFixed(4)||"—") + " g/cm3");
+
+        // Tableau coûts détaillés
+        chk(20);
+        const costData = (priceRes.detail||[]).slice(0,15).map(d => [
+          sanitize(d.name),
+          d.pct?.toFixed(2) + "%",
+          formatPrice(d.price_kg, rptCur) + "/kg",
+          formatPrice(d.cost_contribution_FCFA, rptCur),
+        ]);
+        doc.autoTable({
+          startY: Y,
+          head:   [["Ingredient","Quantite","Prix unitaire","Contribution"]],
+          body:   costData,
+          theme:  "striped",
+          headStyles: {fillColor:C.card, textColor:C.amber, fontSize:7.5, fontStyle:"bold"},
+          bodyStyles: {fontSize:7.5, textColor:C.dark},
+          alternateRowStyles: {fillColor:[245,247,252]},
+          margin: {left:ML, right:MR},
+        });
+        Y = doc.lastAutoTable.finalY + 6;
+      } catch(e) {
+        para("Calcul des couts non disponible : " + e.message, 8, C.muted);
+      }
+    }
+
+    // ── Section 3 : Propriétés estimées ──────────────────────────────────
+    if (mainForm && sectionChecked("rpt_properties")) {
+      chk(40); secTitle("3. Proprietes estimees");
+      if (mainForm.HLB_avg != null) kv("HLB moyen", mainForm.HLB_avg?.toFixed(2));
+      kv("Type emulsion probable", mainForm.HLB_avg < 6 ? "W/O" : mainForm.HLB_avg > 10 ? "O/W" : "intermediaire");
+      kv("Densite", (mainForm.density_est?.toFixed(4)||"—") + " g/cm3");
+
+      // Fractions par categorie
+      const comp = mainForm.composition || {};
+      const catFrac = {};
+      Object.entries(comp).forEach(([id,pct]) => {
+        const cat = MATERIALS_CACHE[id]?.category || "?";
+        catFrac[cat] = (catFrac[cat]||0) + pct;
+      });
+      Object.entries(catFrac).sort((a,b)=>b[1]-a[1]).forEach(([cat,pct]) => {
+        kv("Fraction " + cat, pct.toFixed(1) + "%");
+      });
+    }
+
+    // ── Section 4 : Compatibilité ──────────────────────────────────────────
+    if (mainForm && sectionChecked("rpt_compatibility")) {
+      chk(40); secTitle("4. Compatibilite et alertes");
+      try {
+        const compatRes = await apiPost("/recommend/compatibility", {
+          formulation: mainForm.composition
+        });
+        kv("Statut compatibilite",
+           compatRes.compatible ? "Compatible" : "Problemes detectes",
+           compatRes.compatible ? C.green : C.red);
+        kv("Composants verifies", compatRes.n_checked);
+        (compatRes.alerts||[]).forEach(a => para("ALERTE : " + a, 8, C.red));
+        (compatRes.warnings||[]).forEach(w => para("Attention : " + w, 8, C.amber));
+        if (!compatRes.alerts?.length && !compatRes.warnings?.length)
+          para("Aucune incompatibilite detectee.", 8, C.green);
+      } catch(e) {
+        para("Analyse non disponible.", 8, C.muted);
+      }
+    }
+
+    // ── Section 5 : Fiches matières ────────────────────────────────────────
+    if (mainForm && sectionChecked("rpt_matfiche")) {
+      secTitle("5. Fiches matieres premieres");
+      const entries = Object.entries(mainForm.composition||{}).sort((a,b)=>b[1]-a[1]);
+      entries.slice(0,8).forEach(([id, pct]) => {
+        const mat = MATERIALS_CACHE[id] || {};
+        chk(28);
+        doc.setFillColor(245,247,252);
+        doc.rect(ML, Y-2, CW, 26, "F");
+        doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(...C.dark);
+        doc.text(sanitize(mat.name || id), ML+3, Y+4);
+        doc.setFontSize(7.5); doc.setFont("helvetica","normal");
+        doc.setTextColor(...C.muted);
+        const fields = [
+          ["Categorie", mat.category], ["Proportion", pct.toFixed(2)+"%"],
+          ["CAS", mat.cas||"—"],       ["Origine", mat.origin||"—"],
+          ["Fonctions", (mat.function||[]).slice(0,4).join(", ")],
+        ];
+        let xf = ML+3, yf = Y+9;
+        fields.forEach(([k,v]) => {
+          doc.setTextColor(...C.muted); doc.text(k+":", xf, yf);
+          doc.setTextColor(...C.dark); doc.text(sanitize(String(v||"—")), xf+22, yf);
+          yf += 4.5;
+        });
+        if (mat.properties?.note) {
+          doc.setTextColor(...C.muted);
+          doc.text("Note: "+sanitize(mat.properties.note).substring(0,70), ML+3, yf);
+        }
+        Y += 30;
+      });
+    }
+
+    // ── Section 6 : Matières premières CI ─────────────────────────────────
+    if (sectionChecked("rpt_local")) {
+      secTitle("6. Valorisation matieres premieres locales CI");
+      const ciMats = Object.entries(mainForm?.composition||{}).filter(([id]) => {
+        const mat = MATERIALS_CACHE[id] || {};
+        return mat.origin?.includes("CI") || mat.origin?.includes("Cote") ||
+               mat._source?.includes("CI");
+      });
+
+      if (ciMats.length) {
+        kv("Ingredients locaux CI", ciMats.length + "/" + Object.keys(mainForm.composition||{}).length);
+        const localPct = ciMats.reduce((s,[,p])=>s+p, 0);
+        kv("Part locale totale", localPct.toFixed(1) + "%");
+        doc.setFillColor(0,229,200,10);
+        chk(20);
+        doc.setFillColor(0,40,35); doc.rect(ML, Y, CW, ciMats.length*6+10, "F");
+        doc.setFontSize(8.5); doc.setFont("helvetica","bold");
+        doc.setTextColor(...C.cyan);
+        doc.text("Ingredients 100% locaux Cote d'Ivoire :", ML+4, Y+6);
+        Y += 9;
+        ciMats.forEach(([id,pct]) => {
+          const mat = MATERIALS_CACHE[id]||{};
+          doc.setFont("helvetica","normal"); doc.setTextColor(...C.white);
+          doc.text(`- ${sanitize(mat.name||id)} (${pct.toFixed(1)}%) — ${sanitize(mat.origin||"")}`, ML+6, Y);
+          Y += 5.5;
+        });
+        Y += 4;
+        para("Valorisation des filieres locales : palmier, karite, cacao, coco, moringa...", 8, C.muted);
+        para("Reduction des importations — impact economique positif pour la CI.", 8, C.muted);
+      } else {
+        para("Aucune matiere premiere locale CI identifiee dans cette formulation.", 8, C.muted);
+        para("Considerez d'ajouter : Huile_Palme_RBD, Beurre_Cacao, Beurre_Karite,", 8, C.amber);
+        para("Aloe_Vera_Gel_CI, Gomme_Arabique_CI, Argile_Kaolin_CI...", 8, C.amber);
+      }
+    }
+
+    // ── Toutes les formulations générées (résumé) ──────────────────────────
+    if (state.generatedFormulas.length > 1) {
+      secTitle(`7. Comparatif des ${Math.min(state.generatedFormulas.length,5)} formulations`);
+      const allIds = [...new Set(state.generatedFormulas.flatMap(f => Object.keys(f.composition||{})))];
+      const tableHead = ["Ingredient", ...state.generatedFormulas.slice(0,5).map((_,i)=>`F#${i+1}`)];
+      const tableBody = allIds.slice(0,12).map(id => {
+        const mat = MATERIALS_CACHE[id]||{};
+        return [
+          sanitize((mat.name||id).substring(0,22)),
+          ...state.generatedFormulas.slice(0,5).map(f => {
+            const v = f.composition?.[id];
+            return v != null ? v.toFixed(1)+"%" : "—";
+          }),
+        ];
+      });
+      tableBody.push([
+        "Cout (" + rptCur + "/kg)",
+        ...state.generatedFormulas.slice(0,5).map(f =>
+          formatPrice((f.cost_index||0) * 150, rptCur))
+      ]);
+      doc.autoTable({
+        startY:    Y,
+        head:      [tableHead],
+        body:      tableBody,
+        theme:     "grid",
+        headStyles:{fillColor:C.dark, textColor:C.cyan, fontSize:7},
+        bodyStyles:{fontSize:7, textColor:C.dark},
+        alternateRowStyles:{fillColor:[245,247,252]},
+        margin:    {left:ML, right:MR},
+      });
+      Y = doc.lastAutoTable.finalY + 6;
+    }
+
+    // Pied de page dernière page
+    footerPage();
+
+    // ── Sauvegarde ────────────────────────────────────────────────────────
+    const slug = (company + "_" + project).replace(/[^a-zA-Z0-9]/g,"_").substring(0,30);
+    const filename = `FormulationAI_${slug}_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(filename);
+
+    const pg = doc.internal.getNumberOfPages();
+    const el  = document.getElementById("rptStatus");
+    el.style.display = "block";
+    el.innerHTML = `
+      <h4>Rapport PDF genere</h4>
+      <div class="metric-row"><span class="metric-label">Fichier</span>
+        <span class="metric-value good">${filename}</span></div>
+      <div class="metric-row"><span class="metric-label">Pages</span>
+        <span class="metric-value">${pg}</span></div>
+      <div class="metric-row"><span class="metric-label">Devise</span>
+        <span class="metric-value">${rptCur}</span></div>`;
+    showToast("Rapport PDF genere !", "success");
+
+  } catch(e) {
+    console.error(e);
+    showToast("Erreur PDF : " + e.message, "error");
+  } finally { hideLoader(); }
+}
+
+// ── sanitize (PDF safe) ───────────────────────────────────────────────────────
+function sanitize(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
+    .replace(/[éèêë]/g,"e").replace(/[àâä]/g,"a").replace(/[îï]/g,"i")
+    .replace(/[ôö]/g,"o").replace(/[ùûü]/g,"u").replace(/[ç]/g,"c")
+    .replace(/[ÉÈÊË]/g,"E").replace(/[ÀÂÄÃ]/g,"A").replace(/[ÔÖ]/g,"O")
+    .replace(/[°]/g,"deg").replace(/[±]/g,"+/-").replace(/[²³]/g,n=>n==="²"?"2":"3")
+    .replace(/[–—]/g,"-").replace(/[•·▸→]/g,"-")
+    .replace(/[^\x00-\xFF]/g,"?");
+}
+
+// ── loadScript helper ─────────────────────────────────────────────────────────
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+// Stocker le dernier résultat de génération pour la devise
+const _origGenerate = generateFormulations;
+window.generateFormulations = async function() {
+  await _origGenerate.call(this);
+  state.lastGenerateResult = null; // sera mis à jour dans renderFormulations
+};
+
+// Stocker dernier résultat optimisation
+state.lastOptResult = null;
+const _origOptResult = renderOptResult;
+window.renderOptResult = function(res, obj) {
+  _origOptResult.call(this, res, obj);
+  if (obj !== "pareto") state.lastOptResult = res;
+};

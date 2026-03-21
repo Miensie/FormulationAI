@@ -296,3 +296,49 @@ async def calc_cost_fcfa(req: CostFCFARequest):
         return estimate_cost_fcfa(req.formulation, req.batch_kg)
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVISES — nouveaux endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+class PriceFormulationRequest(BaseModel):
+    formulation: Dict[str, float]
+    currency:    str = Field("FCFA", description="FCFA|EUR|USD")
+
+class UpdateRateRequest(BaseModel):
+    usd_rate: float = Field(..., gt=0, description="Nouveau taux USD/FCFA")
+
+
+@router.get("/currency/rates",
+            summary="Taux de change disponibles")
+async def get_rates():
+    from utils.currency import get_exchange_rates
+    return get_exchange_rates()
+
+
+@router.post("/currency/price",
+             summary="Calculer le prix d'une formulation dans une devise")
+async def price_formulation(req: PriceFormulationRequest):
+    from utils.currency import price_formulation as pf
+    try:
+        return pf(req.formulation, req.currency)
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@router.post("/currency/update_usd",
+             summary="Mettre a jour le taux USD/FCFA")
+async def update_usd(req: UpdateRateRequest):
+    from utils.currency import update_usd_rate, EXCHANGE_RATES
+    update_usd_rate(req.usd_rate)
+    return {"status": "ok", "new_rate": req.usd_rate,
+            "message": f"1 USD = {req.usd_rate} FCFA"}
+
+
+@router.get("/db/ci_materials",
+            summary="Matieres premieres locales Cote d'Ivoire")
+async def get_ci_mats():
+    from data.ci_materials_db import CI_MATERIALS, CI_MATERIALS_META
+    return {"materials": CI_MATERIALS, "meta": CI_MATERIALS_META,
+            "n": len(CI_MATERIALS)}
