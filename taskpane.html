@@ -33,15 +33,14 @@
 
 <!-- NAV -->
 <nav class="tab-nav">
-  <button class="tab-btn active" data-tab="compose">🧪 Composer</button>
-  <button class="tab-btn" data-tab="optimize">⚡ Optimiser</button>
-  <button class="tab-btn" data-tab="predict">🎯 Predire</button>
-  <button class="tab-btn" data-tab="advisor">🤖 IA</button>
-  <button class="tab-btn" data-tab="simulate">🔬 Simuler</button>
-  <button class="tab-btn" data-tab="database">📚 BD</button>
-  <button class="tab-btn" data-tab="ci">🇨🇮 CI Local</button>
-  <button class="tab-btn" data-tab="manage">✏️ Gerer</button>
-  <button class="tab-btn" data-tab="report">📄 Rapport</button>
+  <button class="tab-btn active" data-tab="compose">Composer</button>
+  <button class="tab-btn" data-tab="optimize">Optimiser</button>
+  <button class="tab-btn" data-tab="predict">Predire</button>
+  <button class="tab-btn" data-tab="advisor">IA</button>
+  <button class="tab-btn" data-tab="simulate">Simuler</button>
+  <button class="tab-btn" data-tab="database">BD</button>
+  <button class="tab-btn" data-tab="manage">Gerer</button>
+  <button class="tab-btn" data-tab="report">Rapport</button>
 </nav>
 
 <!-- ═══ TAB: COMPOSER ═══ -->
@@ -92,7 +91,7 @@
       </div>
     </div>
     <button class="btn btn-primary full-width mt-8" id="btnGenerate">
-      🧪 Generer les formulations
+      Generer les formulations
     </button>
   </div>
 
@@ -138,7 +137,7 @@
     <label class="field-label">Ponderation cout dans l'objectif</label>
     <input class="field-input" id="weightCost" type="number" value="0.5" min="0" max="1" step="0.1"/>
     <button class="btn btn-primary full-width mt-8" id="btnOptimize">
-      ⚡ Lancer l'optimisation
+      Lancer l'optimisation
     </button>
   </div>
 
@@ -174,7 +173,7 @@
       <span class="hint">Colonnes : composants (%) + derniere colonne = valeur propriete</span>
     </div>
     <button class="btn btn-primary full-width mt-8" id="btnTrain">
-      🧠 Entrainer le modele
+      Entrainer le modele
     </button>
     <div class="result-block" id="trainResult" style="display:none"></div>
   </div>
@@ -183,7 +182,7 @@
     <label class="field-label">Nouvelles formulations a predire</label>
     <p class="hint">Utilisez les formulations generees ou chargez depuis Excel.</p>
     <button class="btn btn-accent full-width mt-8" id="btnPredictGenerated">
-      🎯 Predire les formulations generees
+      Predire les formulations generees
     </button>
     <div class="result-block" id="predictResult" style="display:none"></div>
   </div>
@@ -206,7 +205,7 @@
       <button class="btn btn-secondary budget-btn" data-budget="high">Premium</button>
     </div>
     <button class="btn btn-accent full-width mt-8" id="btnRecommend">
-      🤖 Obtenir les recommandations IA
+      Obtenir les recommandations IA
     </button>
   </div>
 
@@ -216,7 +215,7 @@
     <label class="field-label">Analyser une formulation existante</label>
     <p class="hint">Utilise les composants saisis dans l'onglet Composer.</p>
     <button class="btn btn-ghost full-width" id="btnAnalyze">
-      🔍 Analyser la formulation actuelle
+      Analyser la formulation actuelle
     </button>
     <div class="ai-report" id="analyzeReport" style="display:none"></div>
   </div>
@@ -239,7 +238,7 @@
   <div class="panel-block" id="simParamsPanel"></div>
 
   <button class="btn btn-primary full-width" id="btnSimulate" style="margin:0 14px;width:calc(100% - 28px)">
-    🔬 Lancer la simulation
+    Lancer la simulation
   </button>
 
   <div class="chart-card" id="simChartCard" style="display:none; margin-top:10px">
@@ -290,7 +289,7 @@
 
   <!-- Ajouter un matériau -->
   <div class="panel-block">
-    <label class="field-label">➕ Ajouter un materiau</label>
+    <label class="field-label">Ajouter un materiau</label>
 
     <div class="row-2 mt-4">
       <div>
@@ -363,8 +362,8 @@
     <input class="field-input" id="newMatSource" placeholder="Ex: Ashland, BASF, Sigma-Aldrich"/>
 
     <div class="row-2 mt-8">
-      <button class="btn btn-ghost" id="btnValidateMat">✓ Valider</button>
-      <button class="btn btn-primary" id="btnAddMat">➕ Ajouter</button>
+      <button class="btn btn-ghost" id="btnValidateMat">Valider</button>
+      <button class="btn btn-primary" id="btnAddMat">Ajouter</button>
     </div>
 
     <div class="result-block" id="addMatResult" style="display:none"></div>
@@ -372,7 +371,7 @@
 
   <!-- Ajouter une propriété -->
   <div class="panel-block">
-    <label class="field-label">➕ Ajouter une propriete mesurable</label>
+    <label class="field-label">Ajouter une propriete mesurable</label>
 
     <div class="row-2 mt-4">
       <div>
@@ -408,14 +407,14 @@
            placeholder="Ex: polymer_conc, temperature, crosslinker"/>
 
     <button class="btn btn-primary full-width mt-8" id="btnAddProp">
-      ➕ Ajouter la propriete
+      Ajouter la propriete
     </button>
     <div class="result-block" id="addPropResult" style="display:none"></div>
   </div>
 
   <!-- Gérer les éléments existants -->
   <div class="panel-block">
-    <label class="field-label">🗑 Supprimer un element personnalise</label>
+    <label class="field-label">Supprimer un element personnalise</label>
     <div class="row-2">
       <input class="field-input" id="deleteId" placeholder="ID a supprimer"/>
       <select class="field-select" id="deleteType">
@@ -424,112 +423,23 @@
       </select>
     </div>
     <button class="btn btn-danger full-width mt-8" id="btnDeleteItem">
-      🗑 Supprimer
+      Supprimer
     </button>
   </div>
 
   <!-- Export / Import -->
   <div class="panel-block">
-    <label class="field-label">📦 Export / Import de la BD personnalisee</label>
+    <label class="field-label">Export / Import de la BD personnalisee</label>
     <p class="hint">Sauvegardez votre BD pour la partager ou la restaurer.</p>
     <div class="row-2 mt-8">
-      <button class="btn btn-accent" id="btnExportDb">📥 Exporter JSON</button>
-      <button class="btn btn-secondary" id="btnImportDb">📤 Importer JSON</button>
+      <button class="btn btn-accent" id="btnExportDb">Exporter JSON</button>
+      <button class="btn btn-secondary" id="btnImportDb">Importer JSON</button>
     </div>
     <input type="file" id="importFileInput" accept=".json" style="display:none"/>
   </div>
 
 </section>
 
-
-<!-- ═══ TAB: CI LOCAL ═══ -->
-<section class="tab-panel" id="tab-ci">
-
-  <!-- Stats CI -->
-  <div class="panel-block" style="border-left:3px solid #009a3d">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <span style="font-size:24px">🇨🇮</span>
-      <div>
-        <div style="font-size:13px;font-weight:700;color:#009a3d">Matieres Premieres Locales</div>
-        <div class="hint">Cote d'Ivoire — Prix FCFA marche Abidjan 2024-2025</div>
-      </div>
-    </div>
-    <div id="ciStats" class="hint">Chargement...</div>
-  </div>
-
-  <!-- Calcul FCFA -->
-  <div class="panel-block">
-    <label class="field-label">💰 Calculer le cout en FCFA</label>
-    <p class="hint">Calcule a partir des composants de l'onglet Composer.</p>
-    <div class="mt-8">
-      <label class="field-label small">Taille du batch (kg)</label>
-      <input class="field-input" id="fcfaBatchKg" type="number" value="10" min="0.1" step="1"/>
-    </div>
-    <button class="btn btn-primary full-width mt-8" id="btnCalcFcfa">
-      💰 Calculer en FCFA
-    </button>
-    <div id="fcfaResult" style="display:none;margin-top:8px"></div>
-  </div>
-
-  <!-- Rapport PDF -->
-  <div class="panel-block" style="border-left:3px solid #f08700">
-    <label class="field-label">📄 Rapport PDF Professionnel</label>
-    <p class="hint">Genere un rapport complet avec composition, cout FCFA, fournisseurs CI, conformite reglementaire.</p>
-    <div class="mt-8">
-      <label class="field-label small">Nom de la formulation</label>
-      <input class="field-input" id="pdfFormName" placeholder="Ex: Creme Hydratante Palme-Karite"/>
-    </div>
-    <div class="mt-4">
-      <label class="field-label small">Nom de l'entreprise</label>
-      <input class="field-input" id="pdfCompany" placeholder="Ex: SARL Cosmetiques CI"/>
-    </div>
-    <div class="row-2 mt-4">
-      <div>
-        <label class="field-label small">Prepare par</label>
-        <input class="field-input" id="pdfPreparedBy" placeholder="Dr. Kouame"/>
-      </div>
-      <div>
-        <label class="field-label small">Batch PDF (kg)</label>
-        <input class="field-input" id="pdfBatchKg" type="number" value="10"/>
-      </div>
-    </div>
-    <div class="toggle-row mt-8">
-      <label class="field-label small">Inclure analyse IA</label>
-      <label class="toggle">
-        <input type="checkbox" id="pdfIncludeAI" checked/>
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
-    <button class="btn btn-primary full-width mt-8" id="btnGeneratePDF"
-      style="background:linear-gradient(135deg,#009a3d,#007730);font-size:13px;font-weight:700">
-      📄 Generer le Rapport PDF
-    </button>
-    <div id="pdfStatus" style="display:none;margin-top:8px"></div>
-  </div>
-
-  <!-- Liste matériaux CI -->
-  <div class="panel-block">
-    <label class="field-label">Liste des ingredients locaux CI</label>
-    <div class="row-2 mt-4">
-      <select class="field-select" id="ciFilterOrigin">
-        <option value="all">Tous (CI + importes)</option>
-        <option value="local">Production CI uniquement</option>
-      </select>
-      <button class="btn btn-secondary" id="btnLoadCiMats">Afficher</button>
-    </div>
-    <div class="db-results mt-8" id="ciMatsList">
-      <span class="hint">Cliquez Afficher pour voir les ingredients CI</span>
-    </div>
-  </div>
-
-  <!-- Fournisseurs -->
-  <div class="panel-block">
-    <label class="field-label">📍 Fournisseurs Abidjan</label>
-    <button class="btn btn-ghost full-width" id="btnLoadSuppliers">Charger les fournisseurs</button>
-    <div id="suppliersList" style="margin-top:8px"></div>
-  </div>
-
-</section>
 
 
 <!-- ═══ TAB: RAPPORT PDF ═══ -->
