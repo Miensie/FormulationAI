@@ -32,6 +32,7 @@
   <button class="tab-btn" data-tab="advisor">🤖 IA</button>
   <button class="tab-btn" data-tab="simulate">🔬 Simuler</button>
   <button class="tab-btn" data-tab="database">📚 BD</button>
+  <button class="tab-btn" data-tab="manage">✏️ Gerer</button>
 </nav>
 
 <!-- ═══ TAB: COMPOSER ═══ -->
@@ -263,6 +264,170 @@
   <div class="panel-block" id="dbDetailPanel" style="display:none">
     <label class="field-label">Detail</label>
     <div id="dbDetail"></div>
+  </div>
+
+</section>
+
+
+<!-- ═══ TAB: GÉRER LA BD ═══ -->
+<section class="tab-panel" id="tab-manage">
+
+  <!-- Stats BD -->
+  <div class="panel-block" id="dbStatsBlock">
+    <label class="field-label">Statistiques de la base de donnees</label>
+    <div id="dbStats"><span class="hint">Chargement...</span></div>
+    <button class="btn btn-ghost full-width mt-8" id="btnRefreshStats">↻ Actualiser</button>
+  </div>
+
+  <!-- Ajouter un matériau -->
+  <div class="panel-block">
+    <label class="field-label">➕ Ajouter un materiau</label>
+
+    <div class="row-2 mt-4">
+      <div>
+        <label class="field-label small">Identifiant unique *</label>
+        <input class="field-input" id="newMatId" placeholder="Ex: MyPolymer_X"/>
+      </div>
+      <div>
+        <label class="field-label small">Categorie *</label>
+        <select class="field-select" id="newMatCat">
+          <option value="polymer">polymer</option>
+          <option value="surfactant">surfactant</option>
+          <option value="solvent">solvent</option>
+          <option value="oil">oil</option>
+          <option value="wax">wax</option>
+          <option value="excipient">excipient</option>
+          <option value="api">api</option>
+          <option value="preservative">preservative</option>
+          <option value="plasticizer">plasticizer</option>
+          <option value="pigment">pigment</option>
+          <option value="other">other</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="field-label small mt-8">Nom complet *</label>
+    <input class="field-input" id="newMatName" placeholder="Ex: Mon Polymere Speciale XY"/>
+
+    <div class="row-2 mt-8">
+      <div>
+        <label class="field-label small">Numero CAS</label>
+        <input class="field-input" id="newMatCAS" placeholder="Ex: 9004-65-3"/>
+      </div>
+      <div>
+        <label class="field-label small">Densite (g/cm3)</label>
+        <input class="field-input" id="newMatDensity" type="number" value="1.0" step="0.01"/>
+      </div>
+    </div>
+
+    <div class="row-2 mt-4">
+      <div>
+        <label class="field-label small">Cout relatif (1-100)</label>
+        <input class="field-input" id="newMatCost" type="number" value="10" min="1" max="100"/>
+      </div>
+      <div>
+        <label class="field-label small">HLB (tensioactifs)</label>
+        <input class="field-input" id="newMatHLB" type="number" step="0.1" placeholder="Optionnel"/>
+      </div>
+    </div>
+
+    <div class="row-2 mt-4">
+      <div>
+        <label class="field-label small">% min en formulation</label>
+        <input class="field-input" id="newMatMin" type="number" value="0" step="0.1"/>
+      </div>
+      <div>
+        <label class="field-label small">% max en formulation</label>
+        <input class="field-input" id="newMatMax" type="number" value="100" step="0.1"/>
+      </div>
+    </div>
+
+    <label class="field-label small mt-8">Fonctions (separees par virgule)</label>
+    <input class="field-input" id="newMatFunctions"
+           placeholder="Ex: thickener, emulsifier, stabilizer"/>
+
+    <label class="field-label small mt-4">Compatible avec (categories)</label>
+    <input class="field-input" id="newMatCompat"
+           placeholder="Ex: polymer, solvent, api"/>
+
+    <label class="field-label small mt-4">Source / Fournisseur</label>
+    <input class="field-input" id="newMatSource" placeholder="Ex: Ashland, BASF, Sigma-Aldrich"/>
+
+    <div class="row-2 mt-8">
+      <button class="btn btn-ghost" id="btnValidateMat">✓ Valider</button>
+      <button class="btn btn-primary" id="btnAddMat">➕ Ajouter</button>
+    </div>
+
+    <div class="result-block" id="addMatResult" style="display:none"></div>
+  </div>
+
+  <!-- Ajouter une propriété -->
+  <div class="panel-block">
+    <label class="field-label">➕ Ajouter une propriete mesurable</label>
+
+    <div class="row-2 mt-4">
+      <div>
+        <label class="field-label small">Identifiant unique *</label>
+        <input class="field-input" id="newPropId" placeholder="Ex: my_hardness"/>
+      </div>
+      <div>
+        <label class="field-label small">Unite *</label>
+        <input class="field-input" id="newPropUnit" placeholder="Ex: N, Pa, %"/>
+      </div>
+    </div>
+
+    <label class="field-label small mt-8">Nom de la propriete *</label>
+    <input class="field-input" id="newPropName" placeholder="Ex: Durete Shore A"/>
+
+    <div class="row-2 mt-4">
+      <div>
+        <label class="field-label small">Valeur min</label>
+        <input class="field-input" id="newPropMin" type="number" value="0"/>
+      </div>
+      <div>
+        <label class="field-label small">Valeur max</label>
+        <input class="field-input" id="newPropMax" type="number" value="100"/>
+      </div>
+    </div>
+
+    <label class="field-label small mt-4">Methode de mesure</label>
+    <input class="field-input" id="newPropMethod"
+           placeholder="Ex: ASTM D2240, ISO 7619"/>
+
+    <label class="field-label small mt-4">Facteurs cles (separes par virgule)</label>
+    <input class="field-input" id="newPropFactors"
+           placeholder="Ex: polymer_conc, temperature, crosslinker"/>
+
+    <button class="btn btn-primary full-width mt-8" id="btnAddProp">
+      ➕ Ajouter la propriete
+    </button>
+    <div class="result-block" id="addPropResult" style="display:none"></div>
+  </div>
+
+  <!-- Gérer les éléments existants -->
+  <div class="panel-block">
+    <label class="field-label">🗑 Supprimer un element personnalise</label>
+    <div class="row-2">
+      <input class="field-input" id="deleteId" placeholder="ID a supprimer"/>
+      <select class="field-select" id="deleteType">
+        <option value="material">Materiau</option>
+        <option value="property">Propriete</option>
+      </select>
+    </div>
+    <button class="btn btn-danger full-width mt-8" id="btnDeleteItem">
+      🗑 Supprimer
+    </button>
+  </div>
+
+  <!-- Export / Import -->
+  <div class="panel-block">
+    <label class="field-label">📦 Export / Import de la BD personnalisee</label>
+    <p class="hint">Sauvegardez votre BD pour la partager ou la restaurer.</p>
+    <div class="row-2 mt-8">
+      <button class="btn btn-accent" id="btnExportDb">📥 Exporter JSON</button>
+      <button class="btn btn-secondary" id="btnImportDb">📤 Importer JSON</button>
+    </div>
+    <input type="file" id="importFileInput" accept=".json" style="display:none"/>
   </div>
 
 </section>

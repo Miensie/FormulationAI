@@ -1038,3 +1038,271 @@ function showToast(msg, type="info") {
 
 // Init simulation params on load
 document.addEventListener("DOMContentLoaded", updateSimParams);
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// ONGLET GÉRER LA BD — CRUD matériaux & propriétés personnalisés
+// ════════════════════════════════════════════════════════════════════════════
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnRefreshStats") ?.addEventListener("click", loadDbStats);
+  document.getElementById("btnValidateMat")  ?.addEventListener("click", validateNewMaterial);
+  document.getElementById("btnAddMat")       ?.addEventListener("click", addNewMaterial);
+  document.getElementById("btnAddProp")      ?.addEventListener("click", addNewProperty);
+  document.getElementById("btnDeleteItem")   ?.addEventListener("click", deleteItem);
+  document.getElementById("btnExportDb")     ?.addEventListener("click", exportDb);
+  document.getElementById("btnImportDb")     ?.addEventListener("click", () =>
+    document.getElementById("importFileInput").click());
+  document.getElementById("importFileInput") ?.addEventListener("change", importDb);
+
+  // Charger les stats au premier affichage de l'onglet
+  document.querySelector('[data-tab="manage"]')?.addEventListener("click", () => {
+    if (!document.getElementById("dbStats").children.length ||
+        document.getElementById("dbStats").querySelector(".hint"))
+      loadDbStats();
+  });
+});
+
+// ── Stats BD ─────────────────────────────────────────────────────────────────
+
+async function loadDbStats() {
+  try {
+    const res = await apiGet("/db/stats");
+    const cats = res.by_category || {};
+    const customIds = res.custom_material_ids || [];
+
+    document.getElementById("dbStats").innerHTML = `
+      <div class="metric-row"><span class="metric-label">Total materiaux</span>
+        <span class="metric-value">${res.total_materials}</span></div>
+      <div class="metric-row"><span class="metric-label">BD integree</span>
+        <span class="metric-value good">${res.builtin_materials}</span></div>
+      <div class="metric-row"><span class="metric-label">Personnalises</span>
+        <span class="metric-value cyan">${res.custom_materials}</span></div>
+      <div class="metric-row"><span class="metric-label">Proprietes</span>
+        <span class="metric-value">${res.total_properties} (${res.custom_properties} custom)</span></div>
+      <div style="margin-top:8px;font-size:9px;color:var(--dim)">
+        Categories : ${Object.entries(cats).map(([k,n])=>`${k}(${n})`).join(", ")}
+      </div>
+      ${customIds.length ? `<div style="margin-top:5px;font-size:9px;color:var(--cyan)">
+        Custom IDs : ${customIds.join(", ")}
+      </div>` : ""}`;
+  } catch(e) {
+    document.getElementById("dbStats").innerHTML =
+      `<span class="hint">Erreur : ${e.message}</span>`;
+  }
+}
+
+// ── Collecte des données du formulaire ────────────────────────────────────────
+
+function collectMaterialData() {
+  const fnRaw   = document.getElementById("newMatFunctions").value;
+  const compRaw = document.getElementById("newMatCompat").value;
+  const hlbVal  = parseFloat(document.getElementById("newMatHLB").value);
+  return {
+    name:            document.getElementById("newMatName").value.trim(),
+    category:        document.getElementById("newMatCat").value,
+    cas:             document.getElementById("newMatCAS").value.trim() || undefined,
+    density:         parseFloat(document.getElementById("newMatDensity").value) || 1.0,
+    cost_rel:        parseFloat(document.getElementById("newMatCost").value) || 10,
+    HLB:             isNaN(hlbVal) ? undefined : hlbVal,
+    min_pct:         parseFloat(document.getElementById("newMatMin").value) || 0,
+    max_pct:         parseFloat(document.getElementById("newMatMax").value) || 100,
+    function:        fnRaw.split(",").map(s=>s.trim()).filter(Boolean),
+    compatible_with: compRaw.split(",").map(s=>s.trim()).filter(Boolean),
+    source:          document.getElementById("newMatSource").value.trim() || "user",
+  };
+}
+
+// ── Validation avant ajout ────────────────────────────────────────────────────
+
+async function validateNewMaterial() {
+  const data = collectMaterialData();
+  if (!data.name) { showToast("Le nom est obligatoire", "error"); return; }
+  showLoader("Validation...");
+  try {
+    const res = await apiPost("/db/materials/validate", data);
+    const el  = document.getElementById("addMatResult");
+    el.style.display = "block";
+
+    const errHtml  = (res.errors||[]).map(e => `<div style="color:var(--red)">✗ ${e}</div>`).join("");
+    const warnHtml = (res.warnings||[]).map(w => `<div style="color:var(--amber)">⚠ ${w}</div>`).join("");
+    const suggHtml = (res.suggestions||[]).map(s => `<div style="color:var(--dim)">💡 ${s}</div>`).join("");
+
+    el.innerHTML = `<h4>${res.valid ? "✓ Valide" : "✗ Erreurs"}</h4>
+      ${errHtml}${warnHtml}${suggHtml}
+      ${res.valid ? '<div class="hint" style="margin-top:4px">Pret a ajouter !</div>' : ""}`;
+
+    showToast(res.valid ? "Validation reussie" : "Corriger les erreurs", res.valid?"success":"error");
+  } catch(e) {
+    showToast("Erreur validation : " + e.message, "error");
+  } finally { hideLoader(); }
+}
+
+// ── Ajout d'un matériau ───────────────────────────────────────────────────────
+
+async function addNewMaterial() {
+  const id   = document.getElementById("newMatId").value.trim();
+  const data = collectMaterialData();
+
+  if (!id)        { showToast("L'identifiant est obligatoire", "error"); return; }
+  if (!data.name) { showToast("Le nom est obligatoire", "error"); return; }
+
+  showLoader("Ajout en cours...");
+  try {
+    const res = await fetch(`${API}/db/materials/custom?material_id=${encodeURIComponent(id)}`, {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(json.detail || json.error));
+
+    const el = document.getElementById("addMatResult");
+    el.style.display = "block";
+    el.innerHTML = `<h4>✓ Materiau ajoute</h4>
+      <div class="metric-row"><span class="metric-label">ID</span>
+        <span class="metric-value good">${json.id}</span></div>
+      <div class="metric-row"><span class="metric-label">Nom</span>
+        <span class="metric-value">${json.data?.name}</span></div>
+      <div class="metric-row"><span class="metric-label">Categorie</span>
+        <span class="metric-value">${json.data?.category}</span></div>`;
+
+    // Mettre à jour le cache local
+    MATERIALS_CACHE[id] = json.data;
+    populateComponentSelect();
+    loadDbStats();
+    showToast(`${data.name} ajoute a la BD !`, "success");
+
+    // Reset formulaire
+    ["newMatId","newMatName","newMatCAS","newMatFunctions","newMatCompat","newMatSource"]
+      .forEach(field => { document.getElementById(field).value = ""; });
+
+  } catch(e) {
+    showToast("Erreur ajout : " + e.message, "error");
+  } finally { hideLoader(); }
+}
+
+// ── Ajout d'une propriété ─────────────────────────────────────────────────────
+
+async function addNewProperty() {
+  const id      = document.getElementById("newPropId").value.trim();
+  const name    = document.getElementById("newPropName").value.trim();
+  const unit    = document.getElementById("newPropUnit").value.trim();
+  const method  = document.getElementById("newPropMethod").value.trim();
+  const factors = document.getElementById("newPropFactors").value.split(",").map(s=>s.trim()).filter(Boolean);
+  const pMin    = parseFloat(document.getElementById("newPropMin").value) || 0;
+  const pMax    = parseFloat(document.getElementById("newPropMax").value) || 100;
+
+  if (!id || !name || !unit) {
+    showToast("ID, nom et unite sont obligatoires", "error"); return;
+  }
+
+  showLoader("Ajout propriete...");
+  try {
+    const res = await fetch(`${API}/db/properties/custom?prop_id=${encodeURIComponent(id)}`, {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    JSON.stringify({ name, unit, range:[pMin,pMax], method, key_factors:factors }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(json.detail || json.error));
+
+    const el = document.getElementById("addPropResult");
+    el.style.display = "block";
+    el.innerHTML = `<h4>✓ Propriete ajoutee</h4>
+      <div class="metric-row"><span class="metric-label">ID</span>
+        <span class="metric-value good">${json.id}</span></div>
+      <div class="metric-row"><span class="metric-label">Nom</span>
+        <span class="metric-value">${json.data?.name}</span></div>
+      <div class="metric-row"><span class="metric-label">Unite</span>
+        <span class="metric-value">${json.data?.unit}</span></div>`;
+
+    // Mettre à jour les checkboxes de propriétés
+    PROPERTIES_CACHE[id] = json.data;
+    populatePropertiesChecks();
+    loadDbStats();
+    showToast(`${name} ajoutee a la BD !`, "success");
+
+    ["newPropId","newPropName","newPropUnit","newPropMethod","newPropFactors"]
+      .forEach(f => { document.getElementById(f).value = ""; });
+
+  } catch(e) {
+    showToast("Erreur ajout propriete : " + e.message, "error");
+  } finally { hideLoader(); }
+}
+
+// ── Suppression ───────────────────────────────────────────────────────────────
+
+async function deleteItem() {
+  const id   = document.getElementById("deleteId").value.trim();
+  const type = document.getElementById("deleteType").value;
+  if (!id) { showToast("Entrez un ID a supprimer", "error"); return; }
+
+  const endpoint = type === "material"
+    ? `/db/materials/custom/${encodeURIComponent(id)}`
+    : `/db/properties/custom/${encodeURIComponent(id)}`;
+
+  if (!confirm(`Supprimer le ${type} '${id}' ? Cette action est irreversible.`)) return;
+
+  showLoader("Suppression...");
+  try {
+    const res = await fetch(API + endpoint, {method: "DELETE"});
+    const json = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(json.detail || json.error));
+
+    if (type === "material") {
+      delete MATERIALS_CACHE[id];
+      populateComponentSelect();
+    } else {
+      delete PROPERTIES_CACHE[id];
+      populatePropertiesChecks();
+    }
+    loadDbStats();
+    document.getElementById("deleteId").value = "";
+    showToast(`${type} '${id}' supprime`, "success");
+  } catch(e) {
+    showToast("Erreur suppression : " + e.message, "error");
+  } finally { hideLoader(); }
+}
+
+// ── Export JSON ───────────────────────────────────────────────────────────────
+
+async function exportDb() {
+  showLoader("Export...");
+  try {
+    const data = await apiGet("/db/custom/export");
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `FormulationAI_BD_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("BD personnalisee exportee", "success");
+  } catch(e) {
+    showToast("Erreur export : " + e.message, "error");
+  } finally { hideLoader(); }
+}
+
+// ── Import JSON ───────────────────────────────────────────────────────────────
+
+async function importDb(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  showLoader("Import...");
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const res  = await apiPost("/db/custom/import", {...data, mode: "merge"});
+
+    // Recharger le cache
+    await loadDatabaseCache();
+    loadDbStats();
+    showToast(`Import reussi : ${res.n_materials} materiaux, ${res.n_properties} proprietes`, "success");
+  } catch(e) {
+    showToast("Erreur import : " + e.message, "error");
+  } finally {
+    hideLoader();
+    event.target.value = "";
+  }
+}
