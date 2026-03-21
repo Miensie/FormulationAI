@@ -32,6 +32,7 @@
   <button class="tab-btn" data-tab="advisor">🤖 IA</button>
   <button class="tab-btn" data-tab="simulate">🔬 Simuler</button>
   <button class="tab-btn" data-tab="database">📚 BD</button>
+  <button class="tab-btn" data-tab="ci">🇨🇮 CI Local</button>
   <button class="tab-btn" data-tab="manage">✏️ Gerer</button>
 </nav>
 
@@ -428,6 +429,96 @@
       <button class="btn btn-secondary" id="btnImportDb">📤 Importer JSON</button>
     </div>
     <input type="file" id="importFileInput" accept=".json" style="display:none"/>
+  </div>
+
+</section>
+
+
+<!-- ═══ TAB: CI LOCAL ═══ -->
+<section class="tab-panel" id="tab-ci">
+
+  <!-- Stats CI -->
+  <div class="panel-block" style="border-left:3px solid #009a3d">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-size:24px">🇨🇮</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#009a3d">Matieres Premieres Locales</div>
+        <div class="hint">Cote d'Ivoire — Prix FCFA marche Abidjan 2024-2025</div>
+      </div>
+    </div>
+    <div id="ciStats" class="hint">Chargement...</div>
+  </div>
+
+  <!-- Calcul FCFA -->
+  <div class="panel-block">
+    <label class="field-label">💰 Calculer le cout en FCFA</label>
+    <p class="hint">Calcule a partir des composants de l'onglet Composer.</p>
+    <div class="mt-8">
+      <label class="field-label small">Taille du batch (kg)</label>
+      <input class="field-input" id="fcfaBatchKg" type="number" value="10" min="0.1" step="1"/>
+    </div>
+    <button class="btn btn-primary full-width mt-8" id="btnCalcFcfa">
+      💰 Calculer en FCFA
+    </button>
+    <div id="fcfaResult" style="display:none;margin-top:8px"></div>
+  </div>
+
+  <!-- Rapport PDF -->
+  <div class="panel-block" style="border-left:3px solid #f08700">
+    <label class="field-label">📄 Rapport PDF Professionnel</label>
+    <p class="hint">Genere un rapport complet avec composition, cout FCFA, fournisseurs CI, conformite reglementaire.</p>
+    <div class="mt-8">
+      <label class="field-label small">Nom de la formulation</label>
+      <input class="field-input" id="pdfFormName" placeholder="Ex: Creme Hydratante Palme-Karite"/>
+    </div>
+    <div class="mt-4">
+      <label class="field-label small">Nom de l'entreprise</label>
+      <input class="field-input" id="pdfCompany" placeholder="Ex: SARL Cosmetiques CI"/>
+    </div>
+    <div class="row-2 mt-4">
+      <div>
+        <label class="field-label small">Prepare par</label>
+        <input class="field-input" id="pdfPreparedBy" placeholder="Dr. Kouame"/>
+      </div>
+      <div>
+        <label class="field-label small">Batch PDF (kg)</label>
+        <input class="field-input" id="pdfBatchKg" type="number" value="10"/>
+      </div>
+    </div>
+    <div class="toggle-row mt-8">
+      <label class="field-label small">Inclure analyse IA</label>
+      <label class="toggle">
+        <input type="checkbox" id="pdfIncludeAI" checked/>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <button class="btn btn-primary full-width mt-8" id="btnGeneratePDF"
+      style="background:linear-gradient(135deg,#009a3d,#007730);font-size:13px;font-weight:700">
+      📄 Generer le Rapport PDF
+    </button>
+    <div id="pdfStatus" style="display:none;margin-top:8px"></div>
+  </div>
+
+  <!-- Liste matériaux CI -->
+  <div class="panel-block">
+    <label class="field-label">Liste des ingredients locaux CI</label>
+    <div class="row-2 mt-4">
+      <select class="field-select" id="ciFilterOrigin">
+        <option value="all">Tous (CI + importes)</option>
+        <option value="local">Production CI uniquement</option>
+      </select>
+      <button class="btn btn-secondary" id="btnLoadCiMats">Afficher</button>
+    </div>
+    <div class="db-results mt-8" id="ciMatsList">
+      <span class="hint">Cliquez Afficher pour voir les ingredients CI</span>
+    </div>
+  </div>
+
+  <!-- Fournisseurs -->
+  <div class="panel-block">
+    <label class="field-label">📍 Fournisseurs Abidjan</label>
+    <button class="btn btn-ghost full-width" id="btnLoadSuppliers">Charger les fournisseurs</button>
+    <div id="suppliersList" style="margin-top:8px"></div>
   </div>
 
 </section>

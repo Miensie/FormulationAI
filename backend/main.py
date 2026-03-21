@@ -15,6 +15,7 @@ from api.routes_prediction   import router as pred_router
 from api.routes_advisor      import router as adv_router
 from api.routes_simulation   import router as sim_router
 from api.routes_database     import router as db_router
+from api.routes_report       import router as report_router
 
 # Logs
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -39,9 +40,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,          # False requis quand origins contient des domaines explicites
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 PREFIX = "/api/v1"
@@ -51,6 +53,7 @@ app.include_router(pred_router, prefix=PREFIX, tags=["Prediction ML"])
 app.include_router(adv_router,  prefix=PREFIX, tags=["IA Advisor"])
 app.include_router(sim_router,  prefix=PREFIX, tags=["Simulation"])
 app.include_router(db_router,   prefix=PREFIX, tags=["Base de donnees"])
+app.include_router(report_router,prefix=PREFIX, tags=["Rapport PDF"])
 
 @app.get("/", tags=["Sante"])
 async def root():

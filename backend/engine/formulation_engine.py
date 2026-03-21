@@ -138,8 +138,11 @@ def _lhs_samples(components: List[ComponentConstraint],
 
 def _enrich(formulation: Dict[str, float]) -> Dict[str, Any]:
     """Ajoute les proprietes calculables a une formulation."""
+    from data.ci_materials_db import estimate_cost_fcfa
     cost    = estimate_blend_cost(formulation)
     density = estimate_blend_density(formulation)
+    # Cout FCFA pour 1 kg
+    fcfa    = estimate_cost_fcfa(formulation, batch_kg=1.0)
 
     # HLB moyen pondere
     hlb_num = 0.0; hlb_den = 0.0
@@ -156,13 +159,15 @@ def _enrich(formulation: Dict[str, float]) -> Dict[str, Any]:
     ))
 
     return {
-        "composition":   formulation,
-        "total_pct":     round(sum(formulation.values()), 4),
-        "cost_index":    cost,
-        "density_est":   density,
-        "HLB_avg":       hlb_avg,
-        "categories":    categories,
-        "n_components":  len(formulation),
+        "composition":      formulation,
+        "total_pct":        round(sum(formulation.values()), 4),
+        "cost_index":       cost,
+        "cost_fcfa_per_kg": fcfa.get("cost_per_kg"),
+        "cost_fcfa_fmt":    fcfa.get("cost_per_kg_fmt"),
+        "density_est":      density,
+        "HLB_avg":          hlb_avg,
+        "categories":       categories,
+        "n_components":     len(formulation),
     }
 
 

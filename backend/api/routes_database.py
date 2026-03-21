@@ -263,3 +263,36 @@ async def db_stats():
         "by_category":        cats,
         "custom_material_ids":list(custom_m.keys()),
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BD LOCALE CÔTE D'IVOIRE
+# ─────────────────────────────────────────────────────────────────────────────
+
+from pydantic import BaseModel as _BM
+class CostFCFARequest(_BM):
+    formulation: Dict[str, float]
+    batch_kg:    float = 1.0
+
+@router.get("/db/ci/materials",
+            summary="Matieres premieres locales Cote d'Ivoire")
+async def get_ci_mats(local_only: bool = False):
+    from data.ci_materials_db import CI_MATERIALS, get_ci_by_origin
+    data = get_ci_by_origin(True) if local_only else CI_MATERIALS
+    return {"materials": data, "n": len(data), "country": "Cote d'Ivoire"}
+
+@router.get("/db/ci/suppliers",
+            summary="Fournisseurs locaux Abidjan")
+async def get_ci_suppliers():
+    from data.ci_materials_db import CI_SUPPLIERS_GENERAL
+    return {"suppliers": CI_SUPPLIERS_GENERAL, "n": len(CI_SUPPLIERS_GENERAL)}
+
+@router.post("/db/ci/cost_fcfa",
+             summary="Calculer le cout en FCFA",
+             description="Retourne le cout reel en FCFA pour un batch donne, selon les prix marche Abidjan.")
+async def calc_cost_fcfa(req: CostFCFARequest):
+    from data.ci_materials_db import estimate_cost_fcfa
+    try:
+        return estimate_cost_fcfa(req.formulation, req.batch_kg)
+    except Exception as e:
+        raise HTTPException(500, str(e))

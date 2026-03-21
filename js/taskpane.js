@@ -1306,3 +1306,297 @@ async function importDb(event) {
     event.target.value = "";
   }
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// ONGLET CI LOCAL — Matières premières, FCFA, Rapport PDF
+// ════════════════════════════════════════════════════════════════════════════
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnCalcFcfa")      ?.addEventListener("click", calcFcfa);
+  document.getElementById("btnGeneratePDF")   ?.addEventListener("click", generatePDFReport);
+  document.getElementById("btnLoadCiMats")    ?.addEventListener("click", loadCiMaterials);
+  document.getElementById("btnLoadSuppliers") ?.addEventListener("click", loadSuppliers);
+
+  // Charger les stats CI au premier clic sur l'onglet
+  document.querySelector('[data-tab="ci"]')?.addEventListener("click", () => {
+    loadCiStats();
+    // Pré-remplir le nom de formulation depuis l'onglet Composer
+    const fn = document.getElementById("pdfFormName");
+    if (fn && !fn.value) fn.value = "Ma Formulation CI";
+  });
+});
+
+// ── Stats CI ─────────────────────────────────────────────────────────────────
+async function loadCiStats() {
+  const el = document.getElementById("ciStats");
+  if (!el || el.textContent !== "Chargement...") return;
+  try {
+    const res = await apiGet("/db/ci/materials");
+    const mats = res.materials || {};
+    const local = Object.values(mats).filter(m => m.origin_ci).length;
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">
+        <div style="text-align:center;padding:6px;background:rgba(0,154,61,.1);border-radius:4px">
+          <div style="font-size:18px;font-weight:800;color:#009a3d">${res.n}</div>
+          <div style="font-size:9px;color:var(--muted)">Total ingredients</div>
+        </div>
+        <div style="text-align:center;padding:6px;background:rgba(240,135,0,.1);border-radius:4px">
+          <div style="font-size:18px;font-weight:800;color:#f08700">${local}</div>
+          <div style="font-size:9px;color:var(--muted)">Produits en CI</div>
+        </div>
+        <div style="text-align:center;padding:6px;background:rgba(0,229,200,.1);border-radius:4px">
+          <div style="font-size:18px;font-weight:800;color:var(--cyan)">${res.n - local}</div>
+          <div style="font-size:9px;color:var(--muted)">Importes</div>
+        </div>
+      </div>`;
+  } catch(e) {
+    el.textContent = "Erreur chargement stats CI";
+  }
+}
+
+// ── Calcul FCFA ───────────────────────────────────────────────────────────────
+async function calcFcfa() {
+  const batchKg = parseFloat(document.getElementById("fcfaBatchKg").value) || 10;
+
+  // Obtenir la formulation (générée ou contraintes moyennées)
+  let formulation = {};
+  if (state.generatedFormulas.length > 0) {
+    formulation = state.generatedFormulas[0].composition;
+  } else if (state.components.length > 0) {
+    const total = state.components.reduce((s,c) => s+(c.min+c.max)/2, 0);
+    state.components.forEach(c => {
+      formulation[c.id] = ((c.min+c.max)/2) * 100 / total;
+    });
+  } else {
+    showToast("Ajoutez des composants dans l'onglet Composer", "error"); return;
+  }
+
+  showLoader("Calcul en FCFA...");
+  try {
+    const res = await apiPost("/db/ci/cost_fcfa", {formulation, batch_kg: batchKg});
+    renderFcfaResult(res);
+    showToast(`Cout calcule : ${res.cost_per_kg_fmt}`, "success");
+  } catch(e) {
+    showToast("Erreur FCFA : " + e.message, "error");
+  } finally { hideLoader(); }
+}
+
+function renderFcfaResult(res) {
+  const el = document.getElementById("fcfaResult");
+  el.style.display = "block";
+
+  const detail  = res.detail || {};
+  const estIds  = res.estimated_ids || [];
+  const sorted  = Object.entries(detail).sort((a,b) => b[1].cost_fcfa - a[1].cost_fcfa);
+
+  const rows = sorted.map(([id, d]) => {
+    const isEst  = estIds.includes(id);
+    const mat    = MATERIALS_CACHE[id] || {};
+    const name   = (mat.name || id).substring(0, 22);
+    const srcBadge = isEst
+      ? '<span style="font-size:8px;color:var(--amber);font-style:italic">estimé</span>'
+      : '<span style="font-size:8px;color:var(--green)">prix CI</span>';
+    return `<div style="display:flex;gap:4px;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);font-size:9px;font-family:var(--mono)">
+      <span style="flex:1;color:var(--text)">${name}</span>
+      <span style="color:var(--muted);width:30px;text-align:right">${d.pct.toFixed(1)}%</span>
+      <span style="color:var(--muted);width:38px;text-align:right">${d.price_fcfa_kg.toLocaleString('fr-FR')} F</span>
+      <span style="color:var(--cyan);width:55px;text-align:right;font-weight:700">${d.cost_fcfa.toLocaleString('fr-FR')} F</span>
+      ${srcBadge}
+    </div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div style="background:rgba(0,154,61,.12);border:1px solid rgba(0,154,61,.3);border-radius:6px;padding:10px">
+      <div style="font-size:13px;font-weight:800;color:#009a3d;margin-bottom:4px">
+        ${res.cost_per_kg_fmt} <span style="font-size:10px;font-weight:400;color:var(--muted)">= coût/kg</span>
+      </div>
+      <div style="font-size:11px;color:var(--text)">
+        Batch ${res.batch_kg} kg → <strong>${res.total_fcfa_fmt}</strong>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-top:3px">${res.currency}</div>
+    </div>
+    <div style="margin-top:8px;background:var(--input);border-radius:4px;padding:8px">
+      <div style="display:flex;gap:4px;font-size:9px;font-family:var(--mono);color:var(--dim);margin-bottom:4px;border-bottom:1px solid var(--border);padding-bottom:3px">
+        <span style="flex:1">Ingredient</span>
+        <span style="width:30px;text-align:right">%</span>
+        <span style="width:38px;text-align:right">FCFA/kg</span>
+        <span style="width:55px;text-align:right">Coût</span>
+        <span style="width:40px"></span>
+      </div>
+      ${rows}
+    </div>
+    ${estIds.length ? `<div class="hint" style="margin-top:6px;color:var(--amber)">
+      ⚠ Prix estimés pour : ${estIds.join(", ")}. Consulter les fournisseurs CI pour tarifs réels.
+    </div>` : ""}`;
+}
+
+// ── Rapport PDF ───────────────────────────────────────────────────────────────
+async function generatePDFReport() {
+  // Obtenir la formulation
+  let formulation = {};
+  if (state.generatedFormulas.length > 0) {
+    formulation = state.generatedFormulas[0].composition;
+  } else if (state.components.length > 0) {
+    const total = state.components.reduce((s,c) => s+(c.min+c.max)/2, 0);
+    state.components.forEach(c => {
+      formulation[c.id] = ((c.min+c.max)/2) * 100 / total;
+    });
+  } else {
+    showToast("Ajoutez des composants dans l'onglet Composer", "error"); return;
+  }
+
+  const formName = document.getElementById("pdfFormName").value  || "Ma Formulation";
+  const company  = document.getElementById("pdfCompany").value   || "Mon Entreprise";
+  const prepBy   = document.getElementById("pdfPreparedBy").value|| "";
+  const batchKg  = parseFloat(document.getElementById("pdfBatchKg").value) || 10;
+  const inclAI   = document.getElementById("pdfIncludeAI").checked;
+  const app      = document.getElementById("applicationSelect").value || "cosmetique";
+
+  const pdfStatus = document.getElementById("pdfStatus");
+  pdfStatus.style.display = "none";
+
+  showLoader("Génération du rapport PDF en cours...");
+  try {
+    const response = await fetch(`${API}/report/pdf`, {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    JSON.stringify({
+        formulation,
+        batch_kg:         batchKg,
+        formulation_name: formName,
+        company_name:     company,
+        prepared_by:      prepBy,
+        application:      app,
+        include_analysis: inclAI,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({detail: response.statusText}));
+      throw new Error(err.detail || `HTTP ${response.status}`);
+    }
+
+    // Télécharger le PDF
+    const blob     = await response.blob();
+    const url      = URL.createObjectURL(blob);
+    const a        = document.createElement("a");
+    const filename = formName.replace(/\s+/g,"_").substring(0,40) + "_rapport.pdf";
+    a.href         = url;
+    a.download     = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    pdfStatus.style.display = "block";
+    pdfStatus.innerHTML = `
+      <h4 style="color:#009a3d">✓ Rapport PDF genere</h4>
+      <div class="metric-row"><span class="metric-label">Fichier</span>
+        <span class="metric-value good">${filename}</span></div>
+      <div class="metric-row"><span class="metric-label">Batch</span>
+        <span class="metric-value">${batchKg} kg</span></div>`;
+
+    showToast("Rapport PDF téléchargé !", "success");
+  } catch(e) {
+    showToast("Erreur PDF : " + e.message, "error");
+    console.error(e);
+  } finally { hideLoader(); }
+}
+
+// ── Liste matériaux CI ────────────────────────────────────────────────────────
+async function loadCiMaterials() {
+  const localOnly = document.getElementById("ciFilterOrigin").value === "local";
+  showLoader("Chargement ingredients CI...");
+  try {
+    const res  = await apiGet("/db/ci/materials" + (localOnly ? "?local_only=true" : ""));
+    const mats = res.materials || {};
+    const el   = document.getElementById("ciMatsList");
+
+    el.innerHTML = Object.entries(mats).map(([id, mat]) => {
+      const priceLine = mat.price_fcfa_kg
+        ? `<span style="color:#009a3d;font-weight:700">${mat.price_fcfa_kg.toLocaleString('fr-FR')} FCFA/kg</span>`
+        + (mat.price_min_fcfa ? ` <span style="font-size:8px;color:var(--dim)">[${mat.price_min_fcfa.toLocaleString('fr-FR')}–${mat.price_max_fcfa.toLocaleString('fr-FR')}]</span>` : "")
+        : '<span style="color:var(--muted)">Prix non renseigne</span>';
+
+      const localBadge = mat.origin_ci
+        ? '<span style="background:rgba(0,154,61,.15);color:#009a3d;padding:1px 5px;border-radius:10px;font-size:8px">🇨🇮 CI</span>'
+        : '<span style="background:var(--hover);color:var(--dim);padding:1px 5px;border-radius:10px;font-size:8px">Import</span>';
+
+      const availColor = mat.local_availability === "facile" ? "#009a3d"
+                       : mat.local_availability === "moderee" ? "#f08700" : "#cc4444";
+
+      return `<div class="db-item" onclick="showCiDetail('${id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="db-item-name">${mat.name || id}</div>
+          <div style="display:flex;gap:4px;align-items:center">${localBadge}</div>
+        </div>
+        <div class="db-item-meta">
+          ${mat.category} | ${priceLine}
+          | Dispo : <span style="color:${availColor}">${mat.local_availability || "?"}</span>
+        </div>
+        ${mat.name_local ? `<div style="font-size:9px;font-style:italic;color:var(--dim)">Nom local : ${mat.name_local}</div>` : ""}
+      </div>`;
+    }).join("") || '<div class="hint" style="padding:8px">Aucun ingredient trouve</div>';
+
+    showToast(`${Object.keys(mats).length} ingredients charges`, "success");
+  } catch(e) {
+    showToast("Erreur chargement CI : " + e.message, "error");
+  } finally { hideLoader(); }
+}
+
+function showCiDetail(id) {
+  // Récupérer depuis le cache local (CI materials) et afficher une modale simple
+  apiGet(`/db/materials/${id}`).then(mat => {
+    const suppliers = (mat.suppliers_ci || []).map(s =>
+      `<div style="padding:4px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:600;color:var(--text)">${s.name}</div>
+        <div style="font-size:9px;color:var(--muted)">${s.city} | ${s.contact || ""}</div>
+        ${s.notes ? `<div style="font-size:9px;font-style:italic;color:var(--dim)">${s.notes}</div>` : ""}
+      </div>`).join("");
+
+    const priceLine = mat.price_fcfa_kg
+      ? `<strong style="color:#009a3d">${mat.price_fcfa_kg.toLocaleString('fr-FR')} FCFA/kg</strong>`
+      + (mat.price_min_fcfa ? ` (fourchette : ${mat.price_min_fcfa.toLocaleString('fr-FR')}–${mat.price_max_fcfa.toLocaleString('fr-FR')} FCFA/kg)` : "")
+      : "N/A";
+
+    alert(`${mat.name}\n\nCategorie : ${mat.category}\nPrix CI : ${mat.price_fcfa_kg ? mat.price_fcfa_kg + " FCFA/kg" : "N/A"}\nPlage : ${mat.min_pct}–${mat.max_pct}%\nFonctions : ${(mat.function||[]).join(", ")}\n${mat.notes_technique || ""}`);
+
+    // Proposer d'ajouter à la formulation
+    if (confirm(`Ajouter "${mat.name}" à la formulation ?`)) {
+      if (!state.components.find(c => c.id === id)) {
+        state.components.push({id, min: mat.min_pct||0, max: mat.max_pct||100, fixed:false});
+        MATERIALS_CACHE[id] = mat;
+        populateComponentSelect();
+        renderComponentsList();
+        showToast(`${mat.name} ajouté à la formulation`, "success");
+      } else {
+        showToast("Déjà dans la formulation", "info");
+      }
+    }
+  }).catch(e => showToast("Erreur detail : " + e.message, "error"));
+}
+
+// ── Fournisseurs ──────────────────────────────────────────────────────────────
+async function loadSuppliers() {
+  showLoader("Chargement fournisseurs...");
+  try {
+    const res       = await apiGet("/db/ci/suppliers");
+    const suppliers = res.suppliers || [];
+    const el        = document.getElementById("suppliersList");
+
+    el.innerHTML = suppliers.map(s => `
+      <div style="background:var(--input);border:1px solid var(--border);border-left:3px solid #009a3d;border-radius:4px;padding:8px 10px;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:700;color:var(--text)">${s.name}</div>
+        <div style="font-size:9px;color:#009a3d;margin-top:1px">${s.city}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">${s.specialty || ""}</div>
+        ${s.phone ? `<div style="font-size:9px;color:var(--cyan);margin-top:2px">📞 ${s.phone}</div>` : ""}
+        ${s.min_order ? `<div style="font-size:8px;color:var(--dim)">Commande min : ${s.min_order}</div>` : ""}
+        ${s.notes ? `<div style="font-size:8px;font-style:italic;color:var(--dim);margin-top:2px">${s.notes}</div>` : ""}
+      </div>`).join("");
+
+    showToast(`${suppliers.length} fournisseurs charges`, "success");
+  } catch(e) {
+    showToast("Erreur fournisseurs : " + e.message, "error");
+  } finally { hideLoader(); }
+}

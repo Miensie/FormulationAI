@@ -193,9 +193,10 @@ def get_custom_properties() -> Dict[str, Dict[str, Any]]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def get_all_materials_merged() -> Dict[str, Dict[str, Any]]:
-    """Retourne la BD principale + les materiaux personnalises."""
+    """Retourne BD principale + BD CI locale + materiaux personnalises."""
     from data.materials_db import MATERIALS
-    return {**MATERIALS, **_CUSTOM_MATERIALS}
+    from data.ci_materials_db import CI_MATERIALS
+    return {**MATERIALS, **CI_MATERIALS, **_CUSTOM_MATERIALS}
 
 
 def get_all_properties_merged() -> Dict[str, Dict[str, Any]]:
