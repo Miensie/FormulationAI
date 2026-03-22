@@ -706,3 +706,51 @@ def get_all_materials_with_ci():
     """Retourne la BD principale + CI fusionnees."""
     from data.materials_db import MATERIALS
     return {**MATERIALS, **CI_MATERIALS}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fonctions utilitaires manquantes (importées par routes et engine)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def estimate_cost_fcfa(material_id: str, pct: float) -> float:
+    """
+    Estime le cout en FCFA pour une quantite donnee d'un materiau.
+    pct : pourcentage dans la formulation (0-100)
+    Retourne le cout en FCFA pour 1 kg de formulation.
+    """
+    mat  = CI_MATERIALS.get(material_id)
+    if mat is None:
+        # Chercher dans la BD principale
+        try:
+            from data.materials_db import MATERIALS
+            mat = MATERIALS.get(material_id, {})
+        except Exception:
+            mat = {}
+
+    fcfa_kg = mat.get("cost_FCFA_kg") or (mat.get("cost_rel", 10) * 150)
+    return round(fcfa_kg * (pct / 100.0), 4)
+
+
+# Alias pour compatibilite
+estimate_cost_cfa = estimate_cost_fcfa
+
+
+def get_ci_by_origin(region: str = "") -> dict:
+    """Filtre les materiaux CI par region d'origine."""
+    if not region:
+        return CI_MATERIALS
+    region_lower = region.lower()
+    return {k: v for k, v in CI_MATERIALS.items()
+            if region_lower in v.get("origin", "").lower()}
+
+
+# Fournisseurs generaux Abidjan (reference simple)
+CI_SUPPLIERS_GENERAL = {
+    "CDCI":    "Compagnie de Distribution de Cote d'Ivoire — Treichville",
+    "PALMCI":  "Palmci / PHCI — Zone industrielle Yopougon",
+    "SACO":    "SACO (cacao) — Zone portuaire",
+    "CCC":     "Conseil Cafe-Cacao — Abidjan Plateau",
+    "FIRCA":   "FIRCA — Zone agricole CI",
+    "ANADER":  "ANADER — reseau national",
+    "ADJAME":  "Marche Adjame — grossistes matieres premieres",
+}
