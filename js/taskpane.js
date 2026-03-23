@@ -261,6 +261,8 @@ function renderFormulations(res) {
       <span class="metric-value warn">${s.cost_max?.toFixed(2)||"—"}</span></div>
     <div class="metric-row"><span class="metric-label">Cout moyen</span>
       <span class="metric-value">${s.cost_mean?.toFixed(2)||"—"}</span></div>
+    <div class="metric-row"><span class="metric-label">Cout FCFA moyen</span>
+      <span class="metric-value">${s.fcfa_mean?.toFixed(3)||"—"}</span></div>
     <div class="metric-row"><span class="metric-label">Densite moy.</span>
       <span class="metric-value">${s.density_mean?.toFixed(4)||"—"}</span></div>
   </div>`;
