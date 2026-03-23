@@ -96,6 +96,61 @@ MATERIALS: Dict[str, Dict[str, Any]] = {
         "compatible_with": ["solvent", "polymer", "pigment"],
         "properties": {"crystallinity": 70},
     },
+    "PVC": {
+        "name": "Polyvinyl Chloride",
+        "category": "polymer",
+        "cas": "9002-86-2",
+        "molar_mass": "null",
+        "density": 1.38,
+       "solubility": {
+            "water": 0,
+            "ethanol": 0,
+            "acetone": "insoluble (gonfle légèrement)",
+            "chloroform": "faible gonflement",
+            "THF": "soluble",
+            "cyclohexanone": "soluble"
+        },
+        "pKa": "null",
+        "HLB": "null",
+        "viscosity_ref": "null",
+        "melting_point": 160,
+        "boiling_point": "null",
+        "cost_rel": 20,
+        "min_pct": 10,
+        "max_pct": 100,
+        "function": [
+            "matrice polymere",
+            "materiau structurel",
+            "barriere chimique",
+            "isolant electrique",
+            "support de formulation solide"
+        ],
+        "compatible_with": [
+            "plasticizers",
+            "stabilizers",
+            "fillers",
+            "lubricants",
+            "pigments",
+            "flame_retardants"
+        ],
+        "properties": {
+            "type": "thermoplastique amorphe",
+            "glass_transition_temp_C": 80,
+            "thermal_stability": "faible sans stabilisant",
+            "flammability": "auto-extinguible",
+            "mechanical_behavior": "rigide (PVC-U) ou flexible (PVC plastifie)",
+            "weather_resistance": "bonne avec additifs",
+            "chemical_resistance": "excellente aux acides, bases et sels",
+            "electrical_insulation": "excellente",
+            "processability": [
+            "extrusion",
+            "injection",
+            "calandrage"
+            ],
+            "notes": "Necessite stabilisants thermiques pour eviter degradation (HCl)"
+        }
+    },
+
     "PEG_4000": {
         "name": "Polyethylene Glycol 4000",
         "category": "polymer",
@@ -551,6 +606,63 @@ MATERIALS: Dict[str, Dict[str, Any]] = {
         "compatible_with": ["polymer", "api"],
         "properties": {},
     },
+    "Calcium Carbonate": {
+        "name": "Calcium Carbonate",
+        "category": "filler",
+        "cas": "471-34-1",
+        "molar_mass": 100.09,
+        "density": 2.7,
+        "solubility": {"water": 0.013},
+        "pKa": "null",
+        "HLB": "null",
+        "viscosity_ref": "null",
+        "melting_point": 825,
+        "boiling_point": "null",
+        "cost_rel": 5,
+        "min_pct": 5,
+        "max_pct": 70,
+        "function": ["charge economique", "rigidite", "reduction cout"],
+        "compatible_with": ["polymer"],
+        "properties": {
+        "type": "mineral",
+        "particle_size": "variable",
+        "reinforcement": "faible"
+        }
+    },
+    "Talc": {
+        "name": "Talc",
+        "category": "filler",
+        "cas": "14807-96-6",
+        "molar_mass": 379.27,
+        "density": 2.75,
+        "solubility": {"water": 0},
+        "cost_rel": 8,
+        "min_pct": 5,
+        "max_pct": 40,
+        "function": ["rigidite", "stabilite thermique", "ameliore surface"],
+        "compatible_with": ["polymer"],
+        "properties": {
+        "type": "mineral lamellaire",
+        "reinforcement": "modere"
+        }
+    },
+    "Silica": {
+        "name": "Silica",
+        "category": "filler",
+        "cas": "7631-86-9",
+        "molar_mass": 60.08,
+        "density": 2.2,
+        "solubility": {"water": 0},
+        "cost_rel": 15,
+        "min_pct": 1,
+        "max_pct": 20,
+        "function": ["renforcement", "controle viscosite"],
+        "compatible_with": ["polymer"],
+        "properties": {
+        "type": "amorphe",
+        "surface_area": "elevee"
+        }
+    },
     "Titanium_Dioxide": {
         "name": "Titanium Dioxide",
         "category": "pigment",
@@ -564,6 +676,91 @@ MATERIALS: Dict[str, Dict[str, Any]] = {
         "compatible_with": ["polymer", "solvent", "excipient"],
         "properties": {"refractive_index": 2.7},
     },
+    "Calcium Zinc Stabilizer": {
+        "name": "Calcium Zinc Stabilizer",
+        "category": "stabilizer",
+        "cas": "null",
+        "molar_mass": "null",
+        "density": 1.8,
+        "solubility": {"water": 0},
+        "cost_rel": 30,
+        "min_pct": 0.5,
+        "max_pct": 5,
+        "function": ["stabilisation thermique", "anti degradation"],
+        "compatible_with": ["polymer"],
+        "properties": {
+            "type": "thermique",
+            "application": "PVC"
+        }
+    },
+    "Titanium Dioxide": {
+        "name": "Titanium Dioxide",
+        "category": "pigment",
+        "cas": "13463-67-7",
+        "molar_mass": 79.87,
+        "density": 4.23,
+        "solubility": {"water": 0},
+        "cost_rel": 35,
+        "min_pct": 1,
+        "max_pct": 10,
+        "function": ["coloration", "opacite", "UV resistance"],
+        "compatible_with": ["polymer"],
+        "properties": {
+            "type": "pigment blanc",
+            "indice_refraction": "eleve"
+        }
+    },
+    "Stearic Acid": {
+        "name": "Stearic Acid",
+        "category": "lubricant",
+        "cas": "57-11-4",
+        "molar_mass": 284.48,
+        "density": 0.94,
+        "solubility": {"water": 0},
+        "cost_rel": 12,
+        "min_pct": 0.2,
+        "max_pct": 2,
+        "function": ["lubrification", "facilite transformation"],
+        "compatible_with": ["polymer"],
+        "properties": {
+        "type": "acide gras",
+        "role": "reduction friction"
+        }
+    },
+    "Aluminum Hydroxide" :{
+        "name": "Aluminum Hydroxide",
+        "category": "flame_retardant",
+        "cas": "21645-51-2",
+        "molar_mass": 78.0,
+        "density": 2.42,
+        "solubility": {"water": 0},
+        "cost_rel": 18,
+        "min_pct": 10,
+        "max_pct": 60,
+        "function": ["retardateur de flamme", "securite incendie"],
+        "compatible_with": ["polymer"],
+        "properties": {
+        "type": "mineral",
+        "mode_action": "degagement eau"
+        }
+    },
+    "Dioctyl_Phtalate": {
+        "name": "Dioctyl Phthalate (DOP)",
+        "category": "plasticizer",
+        "cas": "117-81-7",
+        "molar_mass": 390.56,
+        "density": 0.99,
+        "solubility": {"water": 0},
+        "cost_rel": 25,
+        "min_pct": 5,
+        "max_pct": 50,
+        "function": ["plasticisation", "flexibilite"],
+        "compatible_with": ["polymer"],
+        "properties": {
+            "type": "phtalate",
+            "effect": "assouplit PVC"
+        }
+    }
 }
 
 

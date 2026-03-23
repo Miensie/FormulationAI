@@ -144,6 +144,194 @@ PROPERTIES: Dict[str, Dict[str, Any]] = {
         "key_factors":  ["mixing_time", "particle_size", "density_match"],
         "prediction_model": "random_forest",
     },
+    
+    "glass_transition_temp": {
+        "name":         "Temperature de transition vitreuse (Tg)",
+        "unit":         "°C",
+        "range":        [-100.0, 250.0],
+        "log_scale":    False,
+        "method":       "DSC (Differential Scanning Calorimetry)",
+        "target_ranges": {
+            "flexible_polymer": [-50, 20],
+            "rigid_polymer":    [60, 150],
+        },
+        "key_factors":  ["polymer_type", "plasticizer_conc"],
+        "prediction_model": "ridge",
+    },
+
+    "melting_point_mix": {
+        "name":         "Point de fusion du systeme",
+        "unit":         "°C",
+        "range":        [0.0, 400.0],
+        "log_scale":    False,
+        "method":       "DSC",
+        "key_factors":  ["component_ratio", "crystallinity"],
+        "prediction_model": "random_forest",
+    },
+
+    "thermal_degradation_temp": {
+        "name":         "Temperature de degradation thermique",
+        "unit":         "°C",
+        "range":        [50.0, 600.0],
+        "log_scale":    False,
+        "method":       "TGA (Thermogravimetric Analysis)",
+        "target_ranges": {
+            "low_stability":  [50, 200],
+            "medium":         [200, 350],
+            "high":           [350, 600],
+        },
+        "key_factors":  ["stabilizer_conc", "polymer_type"],
+        "prediction_model": "gradient_boosting",
+    },
+
+    "mechanical_strength": {
+        "name":         "Resistance mecanique",
+        "unit":         "MPa",
+        "range":        [0.1, 200.0],
+        "log_scale":    False,
+        "method":       "Essai traction (ISO 527)",
+        "target_ranges": {
+            "soft":   [0.1, 5],
+            "medium": [5, 50],
+            "rigid":  [50, 200],
+        },
+        "key_factors":  ["filler_content", "polymer_type", "plasticizer"],
+        "prediction_model": "random_forest",
+    },
+
+    "elongation_at_break": {
+        "name":         "Allongement a la rupture",
+        "unit":         "%",
+        "range":        [1.0, 1000.0],
+        "log_scale":    True,
+        "method":       "Essai traction",
+        "target_ranges": {
+            "brittle":   [1, 10],
+            "ductile":   [50, 300],
+            "elastic":   [300, 1000],
+        },
+        "key_factors":  ["plasticizer_conc", "polymer_type"],
+        "prediction_model": "svr",
+    },
+
+    "water_absorption": {
+        "name":         "Absorption d'eau",
+        "unit":         "%",
+        "range":        [0.0, 100.0],
+        "log_scale":    False,
+        "method":       "ISO 62",
+        "target_ranges": {
+            "low":   [0, 1],
+            "medium":[1, 5],
+            "high":  [5, 100],
+        },
+        "key_factors":  ["polymer_polarity", "filler_type"],
+        "prediction_model": "random_forest",
+    },
+
+    "permeability": {
+        "name":         "Permeabilite gaz/liquide",
+        "unit":         "cm3·mm/m2·day·atm",
+        "range":        [0.001, 1000.0],
+        "log_scale":    True,
+        "method":       "Test permeabilite ASTM",
+        "target_ranges": {
+            "barrier": [0.001, 1],
+            "medium":  [1, 100],
+            "high":    [100, 1000],
+        },
+        "key_factors":  ["crystallinity", "polymer_type"],
+        "prediction_model": "gradient_boosting",
+    },
+
+    "surface_tension": {
+        "name":         "Tension superficielle",
+        "unit":         "mN/m",
+        "range":        [10.0, 80.0],
+        "log_scale":    False,
+        "method":       "Tensiometre (Du Noüy)",
+        "target_ranges": {
+            "low":   [10, 30],
+            "medium":[30, 50],
+            "high":  [50, 80],
+        },
+        "key_factors":  ["surfactant_conc", "temperature"],
+        "prediction_model": "ridge",
+    },
+
+    "particle_size": {
+        "name":         "Taille des particules",
+        "unit":         "µm",
+        "range":        [0.001, 1000.0],
+        "log_scale":    True,
+        "method":       "DLS / Laser diffraction",
+        "target_ranges": {
+            "nano":   [0.001, 0.1],
+            "micro":  [0.1, 100],
+        },
+        "key_factors":  ["mixing_speed", "surfactant"],
+        "prediction_model": "random_forest",
+    },
+
+    "hardness": {
+        "name":         "Durete",
+        "unit":         "Shore A/D",
+        "range":        [0, 100],
+        "log_scale":    False,
+        "method":       "Durometre",
+        "target_ranges": {
+            "soft":  [0, 40],
+            "medium":[40, 70],
+            "hard":  [70, 100],
+        },
+        "key_factors":  ["plasticizer", "filler"],
+        "prediction_model": "random_forest",
+    },
+
+    "processability_index": {
+        "name":         "Indice de transformabilite",
+        "unit":         "—",
+        "range":        [0.0, 100.0],
+        "log_scale":    False,
+        "method":       "Score empirique (extrusion/injection)",
+        "target_ranges": {
+            "poor": [0, 40],
+            "good": [40, 70],
+            "excellent": [70, 100],
+        },
+        "key_factors":  ["viscosity", "lubricant", "temperature"],
+        "prediction_model": "gradient_boosting",
+    },
+
+    "aging_resistance": {
+        "name":         "Resistance au vieillissement",
+        "unit":         "% retention",
+        "range":        [0.0, 100.0],
+        "log_scale":    False,
+        "method":       "UV + chaleur (accelerated aging)",
+        "target_ranges": {
+            "poor": [0, 50],
+            "good": [50, 80],
+            "excellent": [80, 100],
+        },
+        "key_factors":  ["antioxidant", "UV_stabilizer"],
+        "prediction_model": "gradient_boosting",
+    },
+
+    "electrical_resistivity": {
+        "name":         "Resistivite electrique",
+        "unit":         "Ohm·cm",
+        "range":        [1e-6, 1e16],
+        "log_scale":    True,
+        "method":       "Test ASTM D257",
+        "target_ranges": {
+            "conductive": [1e-6, 1e2],
+            "semiconductive": [1e2, 1e6],
+            "insulator": [1e6, 1e16],
+        },
+        "key_factors":  ["filler_type", "carbon_black"],
+        "prediction_model": "svr",
+    }
 }
 
 
