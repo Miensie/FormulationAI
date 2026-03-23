@@ -142,8 +142,9 @@ def _enrich(formulation: Dict[str, float]) -> Dict[str, Any]:
     cost    = estimate_blend_cost(formulation)
     density = estimate_blend_density(formulation)
     # Cout FCFA pour 1 kg
+    fcfa = 0.0
     for mat_id, pct in formulation.items():
-        fcfa    = estimate_cost_fcfa(mat_id, pct)
+        fcfa    += estimate_cost_fcfa(mat_id, pct)
 
     # HLB moyen pondere
     hlb_num = 0.0; hlb_den = 0.0
@@ -244,6 +245,7 @@ def generate_formulation(
             "cost_min":    round(min(costs), 4),
             "cost_max":    round(max(costs), 4),
             "cost_mean":   round(float(np.mean(costs)), 4),
+            "fcfa_mean":   round(float(np.mean([r["cost_fcfa_per_kg"] for r in results])), 3),
             "density_mean":round(float(np.mean(density)), 4),
         }
     else:

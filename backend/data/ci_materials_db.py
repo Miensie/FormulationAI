@@ -661,7 +661,7 @@ CI_MATERIALS: Dict[str, Dict[str, Any]] = {
         "density":      1.00,
         "pH":           4.2,
         "cost_FCFA_kg":   5000.0,
-        "cost_rel":       40.0,
+        "cost_rel":       20.0,
         "min_pct":        5.0,
         "max_pct":        80.0,
         "function":       ["solvent", "toner", "antioxidant",
@@ -727,8 +727,8 @@ def estimate_cost_fcfa(material_id: str, pct: float) -> float:
         except Exception:
             mat = {}
 
-    fcfa_kg = mat.get("cost_FCFA_kg") or (mat.get("cost_rel", 10) * 150)
-    return round(fcfa_kg * (pct / 100.0), 4)
+    fcfa_kg = mat.get("cost_FCFA_kg") or (mat.get("cost_rel", 10) * 125)
+    return round(fcfa_kg * (pct / 100.0), 3)
 
 
 # Alias pour compatibilite
